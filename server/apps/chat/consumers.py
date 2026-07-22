@@ -59,6 +59,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         # Accept the WebSocket connection — client is now connected
         await self.accept()
 
+        # Mark this user as online — powers the green dot in the chat
+        # inbox list for whoever is chatting with them.
+        await self.set_online(True)
+
         # Send chat history so the user sees previous messages
         await self.send_history()
 
@@ -74,6 +78,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 self.room_group,
                 self.channel_name,
             )
+        # Only flip presence if we actually got past the auth/room checks
+        # in connect() — otherwise self.user may not be set at all.
+        if hasattr(self, 'user') and self.user.is_authenticated:
+            await self.set_online(False)
 
     # ── Receiving a message ───────────────────────────────────────────────────
 
@@ -232,3 +240,21 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def mark_messages_read(self):
         """Marks all unread messages from the other participant as read."""
         self.room.mark_all_read(reader=self.user)
+
+    @database_sync_to_async
+    def set_online(self, online):
+        """
+        Flips the user's is_online flag and, when going offline, stamps
+        last_seen so the inbox can show "Last seen 5 min ago" instead of
+        just a gray dot.
+
+        Note: if the same user has this consumer open in more than one
+        tab/device, closing one will mark them offline even though another
+        connection may still be live. Good enough for this app's scale —
+        not built for multi-connection presence merging.
+        """
+        from django.utils import timezone
+        self.user.is_online = online
+        if not online:
+            self.user.last_seen = timezone.now()
+        self.user.save(update_fields=['is_online', 'last_seen'])

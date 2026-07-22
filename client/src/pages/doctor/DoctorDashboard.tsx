@@ -4,7 +4,7 @@ import { useUser } from '../../store/authStore'
 import { apiClient } from '../../api/client'
 import {
   Calendar, Users, MessageSquare,
-  ChevronRight, Clock, CheckCircle, XCircle
+  ChevronRight, Clock, CheckCircle, XCircle, User
 } from 'lucide-react'
 import type { Appointment, ChatRoom, PaginatedResponse } from '../../types'
 
@@ -58,7 +58,7 @@ export default function DoctorDashboard() {
 
       {/* Welcome */}
       <div>
-        <h1 className="page-title">Welcome, Dr. {user?.first_name} 👋</h1>
+        <h1 className="page-title">Welcome, Dr. {user?.first_name}</h1>
         <p className="text-gray-500 mt-1 text-sm">Here's your schedule for today.</p>
       </div>
 
@@ -164,9 +164,7 @@ export default function DoctorDashboard() {
                 className="card-hover flex items-center gap-3 p-4"
               >
                 <div className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-medium text-gray-600">
-                    {room.other_participant_name.charAt(0)}
-                  </span>
+                  <User className="w-4 h-4 text-gray-500" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">

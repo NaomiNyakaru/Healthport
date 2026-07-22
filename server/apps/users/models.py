@@ -72,6 +72,15 @@ class User(AbstractBaseUser, PermissionsMixin):
     # appointment and medication reminders.
     push_token = models.CharField(max_length=255, blank=True)
 
+    # ── Chat presence ─────────────────────────────────────────────────────────
+    # Updated by ChatConsumer (apps/chat/consumers.py) on WebSocket
+    # connect/disconnect. Powers the online dot / "last seen" text in the
+    # chat inbox. Not a perfectly precise presence system (e.g. a user with
+    # two tabs open who closes one will briefly show offline) but good
+    # enough for a "green dot" indicator.
+    is_online = models.BooleanField(default=False)
+    last_seen = models.DateTimeField(null=True, blank=True)
+
     # ── Manager ───────────────────────────────────────────────────────────────
     objects = UserManager()
 

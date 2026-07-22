@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import PatientProfile, MedicalRecord, Medication, DosageLog
+from .models import PatientProfile, MedicalRecord, RecordAttachment, Medication, DosageLog
 
 
 # ─── 1. Patient profile ───────────────────────────────────────────────────────
@@ -107,6 +107,47 @@ class MedicalRecordSerializer(serializers.ModelSerializer):
         if request and request.user.is_doctor:
             validated_data['doctor'] = request.user
         return super().create(validated_data)
+
+
+# ─── 2b. Record attachment ────────────────────────────────────────────────────
+
+class RecordAttachmentSerializer(serializers.ModelSerializer):
+    """
+    Read and create files attached to a medical record.
+
+    Used on:
+    - GET  /api/v1/patients/records/<record_id>/attachments/       list
+    - POST /api/v1/patients/records/<record_id>/attachments/       upload
+    - GET  /api/v1/patients/records/<record_id>/attachments/<id>/  detail
+
+    Only 'file' is ever submitted by the client (see
+    RecordAttachmentListCreateView.create() in views.py, which validates
+    with data={'file': f} per uploaded file). The rest — record,
+    original_filename, content_type, size_bytes, uploaded_by — are filled
+    in by the view itself via serializer.save(**kwargs), so they're
+    marked read-only here to keep the client from setting them directly.
+    """
+
+    uploaded_by_name = serializers.CharField(
+        source='uploaded_by.full_name',
+        read_only=True,
+    )
+
+    class Meta:
+        model  = RecordAttachment
+        fields = [
+            'id',
+            'file',
+            'original_filename', 'content_type', 'size_bytes',
+            'uploaded_by', 'uploaded_by_name',
+            'created_at',
+        ]
+        read_only_fields = [
+            'id',
+            'original_filename', 'content_type', 'size_bytes',
+            'uploaded_by',
+            'created_at',
+        ]
 
 
 # ─── 3. Medication ────────────────────────────────────────────────────────────

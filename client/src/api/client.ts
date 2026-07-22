@@ -8,6 +8,25 @@ export const apiClient = axios.create({
   timeout: 10000,
 })
 
+/**
+ * Resolves a media/avatar URL returned by the backend into something the
+ * browser can actually fetch.
+ *
+ * Django's MEDIA_URL is configured as the relative path '/media/', so
+ * User.get_avatar_url() returns paths like '/media/avatars/xyz.jpg' rather
+ * than a full URL. That's fine when the frontend is served from the same
+ * origin as Django, but in dev (Vite on :5173, Django on :8000) the browser
+ * resolves a relative '/media/...' path against the *frontend's* origin,
+ * not Django's — which 404s and shows a broken image icon.
+ *
+ * Pass any avatar/attachment URL through this before rendering.
+ */
+export function resolveMediaUrl(url: string | null | undefined): string | null {
+  if (!url) return null
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
+  return `${BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`
+}
+
 // ─── Token storage ────────────────────────────────────────────────────────────
 
 const TOKEN_KEY   = 'hp_access'

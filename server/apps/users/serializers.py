@@ -226,14 +226,33 @@ class UserProfileSerializer(serializers.ModelSerializer):
     # full_name is a @property on the model, not a DB column.
     # ReadOnlyField exposes it in the response without allowing writes.
     full_name = serializers.ReadOnlyField()
+    is_verified         = serializers.SerializerMethodField()
+    verification_status = serializers.SerializerMethodField()
 
     class Meta:
         model  = User
         fields = [
             'id', 'email', 'first_name', 'last_name',
             'full_name', 'phone', 'role', 'avatar', 'date_joined',
+            'is_verified', 'verification_status',
         ]
         read_only_fields = ['id', 'email', 'role', 'date_joined']
+
+    def get_is_verified(self, obj):
+        if obj.is_doctor:
+            try:
+                return obj.doctor_profile.is_verified
+            except Exception:
+                return False
+        return None
+
+    def get_verification_status(self, obj):
+        if obj.is_doctor:
+            try:
+                return obj.doctor_profile.verification_status
+            except Exception:
+                return 'pending'
+        return None
 
 
 # ─── 5. Change password ───────────────────────────────────────────────────────

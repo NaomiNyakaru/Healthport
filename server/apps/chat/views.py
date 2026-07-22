@@ -35,7 +35,7 @@ class ChatRoomListView(generics.ListAPIView):
         return ChatRoom.objects.filter(
             Q(patient=user) | Q(doctor=user)
         ).select_related(
-            'patient', 'doctor', 'appointment'
+            'patient', 'doctor', 'doctor__doctor_profile', 'appointment'
         ).prefetch_related(
             'messages'
             # prefetch_related loads all messages in one query

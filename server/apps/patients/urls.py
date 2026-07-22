@@ -2,12 +2,16 @@ from django.urls import path
 from .views import (
     MyPatientProfileView,
     PatientProfileForDoctorView,
-    MedicalRecordListCreateView,
+    MedicalRecordListView,
     MedicalRecordDetailView,
     PatientRecordsForDoctorView,
+    RecordAttachmentListCreateView,
+    RecordAttachmentDetailView,
     MedicationListCreateView,
     MedicationDetailView,
+    PatientMedicationsForDoctorView,
     DosageLogListCreateView,
+    PatientDosageLogsForDoctorView,
 )
 
 urlpatterns = [
@@ -22,23 +26,42 @@ urlpatterns = [
     ),
 
 
-    # ── Patient's own medical records ─────────────────────────────────────────
-    # Full URL: GET  /api/v1/patients/me/records/
-    # Full URL: POST /api/v1/patients/me/records/
+     # ── Patient's own medical records (read-only) ─────────────────────────────
+    # Full URL: GET /api/v1/patients/me/records/
+    # A patient can only view records — they're logged by a doctor.
     path(
         'me/records/',
-        MedicalRecordListCreateView.as_view(),
+        MedicalRecordListView.as_view(),
         name='patient-records',
     ),
 
-    # Full URL: GET    /api/v1/patients/me/records/<uuid>/
-    # Full URL: PATCH  /api/v1/patients/me/records/<uuid>/
-    # Full URL: DELETE /api/v1/patients/me/records/<uuid>/
+    # Full URL: GET /api/v1/patients/me/records/<uuid>/
     # <uuid:pk> matches a UUID and passes it to the view as pk
     path(
         'me/records/<uuid:pk>/',
         MedicalRecordDetailView.as_view(),
         name='patient-record-detail',
+    ),
+
+
+    # ── Patient's own medications ─────────────────────────────────────────────
+    # ── Medical record attachments ────────────────────────────────────────────
+    # Full URL: GET  /api/v1/patients/records/<uuid>/attachments/
+    # Full URL: POST /api/v1/patients/records/<uuid>/attachments/
+    # A verified doctor uploads one or more files (multipart, key 'files')
+    # to an existing record. Patients can GET to view/download.
+    path(
+        'records/<uuid:record_id>/attachments/',
+        RecordAttachmentListCreateView.as_view(),
+        name='record-attachments',
+    ),
+
+    # Full URL: GET    /api/v1/patients/records/<uuid>/attachments/<uuid>/
+    # Full URL: DELETE /api/v1/patients/records/<uuid>/attachments/<uuid>/
+    path(
+        'records/<uuid:record_id>/attachments/<uuid:pk>/',
+        RecordAttachmentDetailView.as_view(),
+        name='record-attachment-detail',
     ),
 
 
@@ -84,11 +107,33 @@ urlpatterns = [
         name='patient-profile-for-doctor',
     ),
 
-    # Full URL: GET /api/v1/patients/<uuid>/records/
+    # Full URL: GET  /api/v1/patients/<uuid>/records/
+    # Full URL: POST /api/v1/patients/<uuid>/records/
     # Only returns non-private records — private records are hidden from doctors.
+    # POST here is how a doctor logs a new record for this patient.
     path(
         '<uuid:patient_id>/records/',
         PatientRecordsForDoctorView.as_view(),
         name='patient-records-for-doctor',
+    ),
+
+    # Full URL: GET  /api/v1/patients/<uuid>/medications/
+    # Full URL: POST /api/v1/patients/<uuid>/medications/
+    # POST here is how a doctor prescribes a new medication for this patient.
+    path(
+        '<uuid:patient_id>/medications/',
+        PatientMedicationsForDoctorView.as_view(),
+        name='patient-medications-for-doctor',
+    ),
+
+    # Full URL: GET  /api/v1/patients/<uuid>/dosage-logs/
+    # Full URL: GET  /api/v1/patients/<uuid>/dosage-logs/?medication=<uuid>
+    # Full URL: POST /api/v1/patients/<uuid>/dosage-logs/
+    # POST here is how a doctor logs a dose (e.g. given in-clinic) for
+    # this patient's medication.
+    path(
+        '<uuid:patient_id>/dosage-logs/',
+        PatientDosageLogsForDoctorView.as_view(),
+        name='patient-dosage-logs-for-doctor',
     ),
 ]

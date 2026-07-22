@@ -1,15 +1,22 @@
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../../api/client'
 import {
   ArrowLeft, User, Heart, AlertCircle, Phone,
   Calendar, Clock, Video, MapPin, FileText,
-  Lock, Paperclip, MessageSquare, ChevronDown, ChevronUp
+  Lock, Unlock, Paperclip, MessageSquare, ChevronDown, ChevronUp,
+  Plus, X, Pill, RefreshCw, CalendarDays, CheckCircle, XCircle
 } from 'lucide-react'
 import type {
-  PatientProfile, MedicalRecord, Appointment, PaginatedResponse
+  PatientProfile, MedicalRecord, Appointment, Medication, DosageLog, PaginatedResponse
 } from '../../types'
+
+// ─── Attachment constraints (mirrors server-side validation) ───────────────────
+
+const MAX_FILES = 5
+const MAX_FILE_SIZE = 20 * 1024 * 1024 // 20MB
+const ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png', '.heic', '.heif', '.doc', '.docx']
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -40,6 +47,31 @@ const RECORD_TYPE_COLOURS: Record<string, string> = {
   vaccination:  'bg-teal-50 text-teal-700 border-teal-100',
   note:         'bg-gray-50 text-gray-600 border-gray-100',
 }
+
+const doseStatusClass: Record<string, string> = {
+  taken:   'bg-green-100 text-green-700',
+  missed:  'bg-red-100 text-red-700',
+  skipped: 'bg-gray-100 text-gray-600',
+}
+
+const doseStatusIcon: Record<string, React.ReactNode> = {
+  taken:   <CheckCircle className="w-3.5 h-3.5" />,
+  missed:  <XCircle     className="w-3.5 h-3.5" />,
+  skipped: <Clock       className="w-3.5 h-3.5" />,
+}
+
+const formatDateTime = (iso: string) =>
+  new Date(iso).toLocaleString('en-KE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+
+const RECORD_TYPE_OPTIONS = [
+  { value: 'diagnosis',    label: 'Diagnosis' },
+  { value: 'lab_result',   label: 'Lab Result' },
+  { value: 'prescription', label: 'Prescription' },
+  { value: 'surgery',      label: 'Surgery' },
+  { value: 'allergy',      label: 'Allergy' },
+  { value: 'vaccination',  label: 'Vaccination' },
+  { value: 'note',         label: 'General Note' },
+]
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -79,8 +111,164 @@ function SectionCard({
 export default function PatientDetailPage() {
   const { id }    = useParams<{ id: string }>()
   const navigate  = useNavigate()
+  const queryClient = useQueryClient()
 
   const [showAllAppts, setShowAllAppts] = useState(false)
+
+    // ── Add record form state ────────────────────────────────────────────────
+  const [showAddRecord, setShowAddRecord] = useState(false)
+  const [recordError,   setRecordError]   = useState('')
+  const [title,         setTitle]         = useState('')
+  const [recordType,    setRecordType]    = useState('note')
+  const [description,   setDescription]   = useState('')
+  const [dateOfRecord,  setDateOfRecord]  = useState('')
+  const [isPrivate,     setIsPrivate]     = useState(false)
+  const [files,         setFiles]         = useState<File[]>([])
+
+  const resetRecordForm = () => {
+    setTitle('')
+    setRecordType('note')
+    setDescription('')
+    setDateOfRecord('')
+    setIsPrivate(false)
+    setFiles([])
+    setRecordError('')
+  }
+
+  const handleFilesSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(e.target.files ?? [])
+    e.target.value = '' // allow re-selecting the same file later
+
+    if (selected.length === 0) return
+
+    const combined = [...files, ...selected]
+    if (combined.length > MAX_FILES) {
+      setRecordError(`You can attach up to ${MAX_FILES} files.`)
+      return
+    }
+
+    for (const f of combined) {
+      const ext = '.' + (f.name.split('.').pop() ?? '').toLowerCase()
+      if (!ALLOWED_EXTENSIONS.includes(ext)) {
+        setRecordError(`"${f.name}" isn't a supported file type.`)
+        return
+      }
+      if (f.size > MAX_FILE_SIZE) {
+        setRecordError(`"${f.name}" is larger than 20MB.`)
+        return
+      }
+    }
+
+    setRecordError('')
+    setFiles(combined)
+  }
+
+  const removeFile = (index: number) =>
+    setFiles(prev => prev.filter((_, i) => i !== index))
+
+  const addRecordMutation = useMutation({
+    mutationFn: async () => {
+      // 1. Create the record itself.
+      const { data: record } = await apiClient.post(`/patients/${id}/records/`, {
+        title:          title.trim(),
+        record_type:    recordType,
+        description:    description.trim(),
+        date_of_record: dateOfRecord,
+        is_private:     isPrivate,
+      })
+
+      // 2. Upload any attached files against the newly created record.
+      if (files.length > 0) {
+        const form = new FormData()
+        files.forEach(f => form.append('files', f))
+        await apiClient.post(`/patients/records/${record.id}/attachments/`, form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+      }
+
+      return record
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['patient-records-doctor', id] })
+      setShowAddRecord(false)
+      resetRecordForm()
+    },
+    onError: (err: any) => {
+      const d = err.response?.data
+      setRecordError(
+        d?.title?.[0] || d?.date_of_record?.[0] || d?.files?.[0] || d?.message ||
+        'Could not save record. Please try again.'
+      )
+    },
+  })
+
+  const handleAddRecord = () => {
+    if (!title.trim())  { setRecordError('Title is required.'); return }
+    if (!dateOfRecord)  { setRecordError('Date is required.'); return }
+    setRecordError('')
+    addRecordMutation.mutate()
+  }
+
+  const today = new Date().toISOString().split('T')[0]
+
+  // ── Prescribe medication form state ──────────────────────────────────────
+  const [showAddMed, setShowAddMed] = useState(false)
+  const [medError,   setMedError]   = useState('')
+  const [medForm,    setMedForm]    = useState({
+    name:           '',
+    dosage:         '',
+    instructions:   '',
+    frequency:      '1',
+    frequency_unit: 'daily',
+    start_date:     today,
+    end_date:       '',
+  })
+
+  const resetMedForm = () => {
+    setMedForm({ name: '', dosage: '', instructions: '', frequency: '1', frequency_unit: 'daily', start_date: today, end_date: '' })
+    setMedError('')
+  }
+
+  // ── Log dose state (copied from patient-side Medications.tsx) ────────────
+  const [expandedMedId, setExpandedMedId] = useState<string | null>(null)
+  const [showLogDose,   setShowLogDose]   = useState<string | null>(null)
+  const [doseStatus,    setDoseStatus]    = useState<'taken' | 'missed' | 'skipped'>('taken')
+  const [doseNotes,     setDoseNotes]     = useState('')
+  const [scheduledTime, setScheduledTime] = useState(new Date().toISOString().slice(0, 16))
+
+  const prescribeMutation = useMutation({
+    mutationFn: () =>
+      apiClient.post(`/patients/${id}/medications/`, {
+        ...medForm,
+        frequency: parseInt(medForm.frequency),
+        end_date:  medForm.end_date || null,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['patient-medications-doctor', id] })
+      setShowAddMed(false)
+      resetMedForm()
+    },
+    onError: (err: any) => {
+      const d = err.response?.data
+      setMedError(
+        d?.name?.[0] || d?.dosage?.[0] || d?.frequency?.[0] ||
+        d?.start_date?.[0] || d?.end_date?.[0] || d?.message ||
+        'Could not prescribe medication. Please try again.'
+      )
+    },
+  })
+
+  const handlePrescribe = () => {
+    if (!medForm.name.trim())   { setMedError('Medication name is required.'); return }
+    if (!medForm.dosage.trim()) { setMedError('Dosage is required.'); return }
+    setMedError('')
+    prescribeMutation.mutate()
+  }
+
+  const frequencyLabel = (med: Medication) =>
+    med.frequency_unit === 'daily'
+      ? `${med.frequency}× per day`
+      : `Every ${med.frequency} hours`
 
   // ── Fetch patient profile ────────────────────────────────────────────────
 
@@ -102,6 +290,50 @@ export default function PatientDetailPage() {
         .get<PaginatedResponse<MedicalRecord>>(`/patients/${id}/records/`)
         .then(r => r.data),
     enabled: !!id,
+  })
+
+  // ── Fetch medications ─────────────────────────────────────────────────────
+
+  const { data: medsData, isLoading: medsLoading } = useQuery({
+    queryKey: ['patient-medications-doctor', id],
+    queryFn: () =>
+      apiClient
+        .get<PaginatedResponse<Medication>>(`/patients/${id}/medications/`)
+        .then(r => r.data),
+    enabled: !!id,
+  })
+
+  const medications = medsData?.results ?? []
+
+  // ── Fetch dose history for the expanded medication ────────────────────────
+
+  const { data: logsData } = useQuery({
+    queryKey: ['patient-dosage-logs-doctor', id, expandedMedId],
+    queryFn: () =>
+      apiClient
+        .get<PaginatedResponse<DosageLog>>(`/patients/${id}/dosage-logs/?medication=${expandedMedId}`)
+        .then(r => r.data),
+    enabled: !!id && !!expandedMedId,
+  })
+
+  const logs = logsData?.results ?? []
+
+  // ── Log a dose on the patient's behalf (e.g. a dose given in-clinic) ─────
+
+  const logDoseMutation = useMutation({
+    mutationFn: () =>
+      apiClient.post(`/patients/${id}/dosage-logs/`, {
+        medication:     showLogDose,
+        scheduled_time: new Date(scheduledTime).toISOString(),
+        status:         doseStatus,
+        notes:          doseNotes.trim(),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['patient-dosage-logs-doctor', id, showLogDose] })
+      setShowLogDose(null)
+      setDoseNotes('')
+      setDoseStatus('taken')
+    },
   })
 
   // ── Fetch shared appointment history ─────────────────────────────────────
@@ -321,11 +553,19 @@ export default function PatientDetailPage() {
 
       {/* ── Medical records ───────────────────────────────────────────────────── */}
       <SectionCard title="Medical Records" icon={FileText}>
-        <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2 mb-2">
-          <Lock className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
-          <p className="text-xs text-blue-700">
-            Private records are hidden. Only records the patient has made visible to doctors appear here.
-          </p>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2 flex-1">
+            <Lock className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
+            <p className="text-xs text-blue-700">
+              Records you mark private are hidden from other doctors, but always visible to the patient.
+            </p>
+          </div>
+          <button
+            onClick={() => { setShowAddRecord(true); setRecordError('') }}
+            className="btn-primary text-xs px-3 py-2 flex-shrink-0"
+          >
+            <Plus className="w-3.5 h-3.5" /> Add record
+          </button>
         </div>
 
         {recordsLoading && (
@@ -371,29 +611,499 @@ export default function PatientDetailPage() {
                   </p>
                 )}
 
-                <div className="flex items-center gap-3 pt-1">
+                <div className="flex items-center gap-3 pt-1 flex-wrap">
                   {rec.doctor_name && (
                     <p className="text-xs text-gray-400">
                       by {rec.doctor_name}
                     </p>
                   )}
-                  {rec.attachment && (
+                  {rec.attachments?.map(att => (
                     <a
-                      href={rec.attachment}
+                      key={att.id}
+                      href={att.file}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                      title={att.original_filename}
+                      className="flex items-center gap-1 text-xs text-blue-600 hover:underline max-w-[160px]"
                     >
-                      <Paperclip className="w-3 h-3" />
-                      Attachment
+                      <Paperclip className="w-3 h-3 flex-shrink-0" />
+                      <span className="truncate">{att.original_filename || 'Attachment'}</span>
                     </a>
-                  )}
+                  ))}
                 </div>
               </div>
             ))}
           </div>
         )}
       </SectionCard>
+
+      {/* ── Medications ────────────────────────────────────────────────────────── */}
+      <SectionCard title="Medications" icon={Pill}>
+        <div className="flex justify-end -mt-2 mb-1">
+          <button onClick={() => { setShowAddMed(true); setMedError('') }} className="btn-primary text-xs px-3 py-1.5">
+            <Plus className="w-3.5 h-3.5" /> Prescribe medication
+          </button>
+        </div>
+
+        {medsLoading && (
+          <div className="space-y-2">
+            {[...Array(2)].map((_, i) => (
+              <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />
+            ))}
+          </div>
+        )}
+
+        {!medsLoading && medications.length === 0 && (
+          <p className="text-sm italic text-gray-400 py-2">No medications on record.</p>
+        )}
+
+        {!medsLoading && medications.length > 0 && (
+          <div className="space-y-2">
+            {medications.map(med => (
+              <div key={med.id} className="border border-gray-100 rounded-xl p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-medium text-gray-900 truncate">{med.name}</p>
+                    <p className="text-sm text-blue-600 font-medium">{med.dosage}</p>
+                  </div>
+                  <span className={`text-xs px-2 py-1 rounded-full font-medium flex-shrink-0 ${
+                    med.is_active ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'
+                  }`}>
+                    {med.is_active ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-gray-500">
+                  <span className="flex items-center gap-1">
+                    <RefreshCw className="w-3 h-3" /> {frequencyLabel(med)}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <CalendarDays className="w-3 h-3" />
+                    {formatDate(med.start_date)}
+                    {med.end_date ? ` → ${formatDate(med.end_date)}` : ' · Ongoing'}
+                  </span>
+                  {med.prescribed_by_name && (
+                    <span className="flex items-center gap-1">
+                      <User className="w-3 h-3" /> Prescribed by Dr. {med.prescribed_by_name}
+                    </span>
+                  )}
+                </div>
+
+                {med.instructions && (
+                  <p className="text-xs text-gray-400 mt-1.5 italic">{med.instructions}</p>
+                )}
+
+                {/* Actions */}
+                <div className="flex gap-2 mt-3 flex-wrap">
+                  <button
+                    onClick={() => setExpandedMedId(expandedMedId === med.id ? null : med.id)}
+                    className="btn-secondary text-xs px-3 py-1.5"
+                  >
+                    {expandedMedId === med.id
+                      ? <><ChevronUp   className="w-3.5 h-3.5" /> Hide history</>
+                      : <><ChevronDown className="w-3.5 h-3.5" /> View history</>
+                    }
+                  </button>
+                </div>
+
+                {/* Dose history (expanded) */}
+                {expandedMedId === med.id && (
+                  <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Dose History</p>
+                    {logs.length === 0 ? (
+                      <p className="text-sm text-gray-400 py-2">No doses logged yet.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {logs.map((log) => (
+                          <div key={log.id} className="flex items-center justify-between gap-3">
+                            <span className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-full font-medium ${
+                              doseStatusClass[log.status] ?? 'bg-gray-100 text-gray-600'
+                            }`}>
+                              {doseStatusIcon[log.status]}
+                              {log.status_display}
+                            </span>
+                            <span className="text-xs text-gray-400 flex-1 text-right">
+                              {formatDateTime(log.scheduled_time)}
+                            </span>
+                            {log.notes && (
+                              <span className="text-xs text-gray-400 italic truncate max-w-[120px]">
+                                "{log.notes}"
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </SectionCard>
+
+      {/* ── Prescribe medication modal ──────────────────────────────────────── */}
+      {showAddMed && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">Prescribe Medication</h2>
+              <button onClick={() => { setShowAddMed(false); resetMedForm() }} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {medError && (
+              <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
+                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                {medError}
+              </div>
+            )}
+
+            <div>
+              <label className="label">Medication name <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                className="input"
+                placeholder="e.g. Metformin"
+                value={medForm.name}
+                onChange={(e) => setMedForm({ ...medForm, name: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <label className="label">Dosage <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                className="input"
+                placeholder="e.g. 500mg"
+                value={medForm.dosage}
+                onChange={(e) => setMedForm({ ...medForm, dosage: e.target.value })}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">Frequency <span className="text-red-500">*</span></label>
+                <input
+                  type="number"
+                  className="input"
+                  min="1"
+                  max="24"
+                  value={medForm.frequency}
+                  onChange={(e) => setMedForm({ ...medForm, frequency: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="label">Unit <span className="text-red-500">*</span></label>
+                <select
+                  className="input"
+                  value={medForm.frequency_unit}
+                  onChange={(e) => setMedForm({ ...medForm, frequency_unit: e.target.value })}
+                >
+                  <option value="daily">Times per day</option>
+                  <option value="hours">Every N hours</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">Start date <span className="text-red-500">*</span></label>
+                <input
+                  type="date"
+                  className="input"
+                  value={medForm.start_date}
+                  onChange={(e) => setMedForm({ ...medForm, start_date: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="label">End date <span className="text-gray-400 font-normal">(optional)</span></label>
+                <input
+                  type="date"
+                  className="input"
+                  min={medForm.start_date}
+                  value={medForm.end_date}
+                  onChange={(e) => setMedForm({ ...medForm, end_date: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="label">Instructions <span className="text-gray-400 font-normal">(optional)</span></label>
+              <textarea
+                className="input resize-none"
+                rows={2}
+                placeholder="e.g. Take with food. Avoid alcohol."
+                value={medForm.instructions}
+                onChange={(e) => setMedForm({ ...medForm, instructions: e.target.value })}
+              />
+            </div>
+
+            <div className="flex gap-3 pt-1">
+              <button onClick={handlePrescribe} disabled={prescribeMutation.isPending} className="btn-primary flex-1">
+                {prescribeMutation.isPending ? (
+                  <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving...</>
+                ) : (
+                  <><Plus className="w-4 h-4" /> Prescribe medication</>
+                )}
+              </button>
+              <button onClick={() => { setShowAddMed(false); resetMedForm() }} className="btn-secondary flex-1">
+                Cancel
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ── Log dose modal (copied from patient-side Medications.tsx) ────────── */}
+      {showLogDose && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 space-y-4">
+
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">Log Dose</h2>
+              <button onClick={() => setShowLogDose(null)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div>
+              <label className="label">Status</label>
+              <div className="grid grid-cols-3 gap-2">
+                {(['taken', 'missed', 'skipped'] as const).map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setDoseStatus(s)}
+                    className={`py-2 text-sm rounded-xl border font-medium capitalize transition-colors ${
+                      doseStatus === s
+                        ? s === 'taken'   ? 'bg-green-600 text-white border-green-600'
+                        : s === 'missed'  ? 'bg-red-600 text-white border-red-600'
+                                          : 'bg-gray-600 text-white border-gray-600'
+                        : 'border-gray-200 text-gray-600 hover:border-blue-300'
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="label">Scheduled time</label>
+              <input
+                type="datetime-local"
+                className="input"
+                value={scheduledTime}
+                onChange={(e) => setScheduledTime(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="label">Notes <span className="text-gray-400 font-normal">(optional)</span></label>
+              <input
+                type="text"
+                className="input"
+                placeholder='e.g. "Given IM in-clinic"'
+                value={doseNotes}
+                onChange={(e) => setDoseNotes(e.target.value)}
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => logDoseMutation.mutate()}
+                disabled={logDoseMutation.isPending}
+                className="btn-primary flex-1"
+              >
+                {logDoseMutation.isPending ? (
+                  <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Logging...</>
+                ) : 'Log dose'}
+              </button>
+              <button onClick={() => setShowLogDose(null)} className="btn-secondary flex-1">
+                Cancel
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ── Add record modal ──────────────────────────────────────────────── */}
+      {showAddRecord && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">Add Medical Record</h2>
+              <button
+                onClick={() => { setShowAddRecord(false); resetRecordForm() }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {recordError && (
+              <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
+                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                {recordError}
+              </div>
+            )}
+
+            {/* Title */}
+            <div>
+              <label className="label">Title <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                className="input"
+                placeholder='e.g. "Follow-up consultation"'
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </div>
+
+            {/* Record type */}
+            <div>
+              <label className="label">Record Type <span className="text-red-500">*</span></label>
+              <select
+                className="input"
+                value={recordType}
+                onChange={(e) => setRecordType(e.target.value)}
+              >
+                {RECORD_TYPE_OPTIONS.map(({ value, label }) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Date */}
+            <div>
+              <label className="label">Date of Record <span className="text-red-500">*</span></label>
+              <input
+                type="date"
+                className="input"
+                max={today}
+                value={dateOfRecord}
+                onChange={(e) => setDateOfRecord(e.target.value)}
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="label">Description <span className="text-gray-400 font-normal">(optional)</span></label>
+              <textarea
+                className="input resize-none"
+                rows={3}
+                placeholder="Diagnosis, findings, or notes for this visit..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+
+            {/* Attachments */}
+            <div>
+              <label className="label">
+                Attachments <span className="text-gray-400 font-normal">(optional, up to {MAX_FILES} files)</span>
+              </label>
+
+              <label
+                htmlFor="record-file-input"
+                className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl px-4 py-4 text-sm text-gray-500 cursor-pointer hover:border-blue-300 hover:bg-blue-50/40 transition-colors"
+              >
+                <Paperclip className="w-4 h-4" />
+                Click to attach lab results, referrals, or scans
+              </label>
+              <input
+                id="record-file-input"
+                type="file"
+                multiple
+                accept={ALLOWED_EXTENSIONS.join(',')}
+                onChange={handleFilesSelected}
+                className="hidden"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                PDF, JPG, PNG, HEIC, DOC/DOCX · up to 20MB each
+              </p>
+
+              {files.length > 0 && (
+                <ul className="mt-2 space-y-1.5">
+                  {files.map((f, i) => (
+                    <li
+                      key={`${f.name}-${i}`}
+                      className="flex items-center justify-between gap-2 bg-gray-50 border border-gray-100 rounded-lg px-3 py-1.5"
+                    >
+                      <span className="flex items-center gap-1.5 text-xs text-gray-700 min-w-0">
+                        <Paperclip className="w-3 h-3 flex-shrink-0 text-gray-400" />
+                        <span className="truncate">{f.name}</span>
+                        <span className="text-gray-400 flex-shrink-0">
+                          ({(f.size / (1024 * 1024)).toFixed(1)}MB)
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeFile(i)}
+                        className="text-gray-400 hover:text-red-500 flex-shrink-0"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* Privacy toggle */}
+            <label className="flex items-center gap-3 cursor-pointer px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors">
+              <input
+                type="checkbox"
+                className="w-4 h-4 accent-blue-600"
+                checked={isPrivate}
+                onChange={(e) => setIsPrivate(e.target.checked)}
+              />
+              <div className="flex items-center gap-2">
+                {isPrivate
+                  ? <Lock   className="w-4 h-4 text-gray-500" />
+                  : <Unlock className="w-4 h-4 text-gray-400" />
+                }
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Private from other doctors</p>
+                  <p className="text-xs text-gray-400">
+                    The patient can always see this. Other doctors cannot.
+                  </p>
+                </div>
+              </div>
+            </label>
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-1">
+              <button
+                onClick={handleAddRecord}
+                disabled={addRecordMutation.isPending}
+                className="btn-primary flex-1"
+              >
+                {addRecordMutation.isPending ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <><Plus className="w-4 h-4" /> Save record</>
+                )}
+              </button>
+              <button
+                onClick={() => { setShowAddRecord(false); resetRecordForm() }}
+                className="btn-secondary flex-1"
+              >
+                Cancel
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* ── Appointment history ───────────────────────────────────────────────── */}
       <SectionCard title="Appointment History" icon={Calendar}>

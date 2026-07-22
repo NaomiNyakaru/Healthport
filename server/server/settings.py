@@ -20,6 +20,9 @@ ALLOWED_HOSTS = ['*']   # tighten this to your domain in production
 # Order matters here — our apps come after third-party apps.
 
 INSTALLED_APPS = [
+    'daphne',
+    'channels',                              # WebSockets for chat (Day 2)
+
     # Django built-ins
     'django.contrib.admin',
     'django.contrib.auth',
@@ -33,7 +36,6 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',              # JWT authentication
     'rest_framework_simplejwt.token_blacklist',  # lets us blacklist tokens on logout
     'corsheaders',                           # allow React Native app to call this API
-    'channels',                              # WebSockets for chat (Day 2)
 
     # Our apps — must match the 'name' field in each app's apps.py
     'apps.users',

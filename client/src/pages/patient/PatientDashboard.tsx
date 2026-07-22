@@ -55,7 +55,7 @@ export default function PatientDashboard() {
       {/* Welcome */}
       <div>
         <h1 className="page-title">
-          Good morning, {user?.first_name} 👋
+          Good Morning, {user?.first_name}
         </h1>
         <p className="text-gray-500 mt-1 text-sm">
           Here's what's happening with your health today.

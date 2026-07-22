@@ -77,6 +77,17 @@ export interface PatientProfile {
   created_at:               string
 }
 
+export interface RecordAttachment {
+  id:                string
+  file:              string
+  original_filename: string
+  content_type:      string
+  size_bytes:        number
+  uploaded_by:       string | null
+  uploaded_by_name:  string | null
+  created_at:        string
+}
+
 export interface MedicalRecord {
   id:                  string
   record_type:         string
@@ -84,7 +95,9 @@ export interface MedicalRecord {
   title:               string
   description:         string
   date_of_record:      string
+  /** @deprecated use `attachments` — kept only for old records with a single legacy file */
   attachment:          string | null
+  attachments:         RecordAttachment[]
   is_private:          boolean
   doctor:              string | null
   doctor_name:         string | null
@@ -157,8 +170,13 @@ export interface ChatRoom {
   other_participant_id:     string
   other_participant_name:   string
   other_participant_avatar: string | null
+  other_participant_specialty:  string | null
+  other_participant_online:     boolean
+  other_participant_last_seen:  string | null
   last_message:             string | null
   last_message_time:        string | null
+  last_message_is_mine:     boolean | null
+  last_message_is_read:     boolean | null
   unread_count:             number
   appointment:              string
   appointment_date:         string

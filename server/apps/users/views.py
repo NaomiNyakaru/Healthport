@@ -3,6 +3,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.parsers import MultiPartParser
+import os
+
 
 from .models import User
 from .serializers import (
@@ -287,3 +290,37 @@ class UpdatePushTokenView(APIView):
             {'message': 'Push token saved.'},
             status=status.HTTP_200_OK,
         )
+
+class UpdateAvatarView(APIView):
+    """
+    PATCH /api/v1/auth/me/avatar/
+    Accepts multipart/form-data with an 'avatar' file field.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes     = [MultiPartParser]
+
+    def patch(self, request):
+        file = request.FILES.get('avatar')
+        if not file:
+            return Response(
+                {'error': 'No file provided.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user = request.user
+
+        # Delete old avatar file to avoid orphaned files on disk
+        if user.avatar:
+            try:
+                if os.path.isfile(user.avatar.path):
+                    os.remove(user.avatar.path)
+            except Exception:
+                pass
+
+        user.avatar = file
+        user.save(update_fields=['avatar'])
+
+        # Return the full absolute URL so the frontend can use it directly
+        avatar_url = request.build_absolute_uri(user.avatar.url) if user.avatar else None
+
+        return Response({'avatar': avatar_url}, status=status.HTTP_200_OK)

@@ -1,6 +1,9 @@
 from django.urls import re_path
 from .consumers import ChatConsumer
- 
+
+
+print("✅ Chat routing loaded")
+
 # WebSocket URL patterns for the chat app.
 # These are imported by the project-level server/routing.py file.
 #

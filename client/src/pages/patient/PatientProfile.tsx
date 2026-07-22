@@ -128,20 +128,33 @@ export default function PatientProfile() {
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      showToast('error', 'Please select an image file.')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('error', 'Image must be smaller than 5MB.')
+      return
+    }
+
     setAvatarLoading(true)
     try {
       const form = new FormData()
       form.append('avatar', file)
+
       const { data } = await apiClient.patch('/auth/me/avatar/', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
+
       updateUser({ avatar: data.avatar })
-      queryClient.invalidateQueries({ queryKey: ['patient-profile'] })
-      showToast('success', 'Photo updated.')
-    } catch {
-      showToast('error', 'Photo upload failed.')
+      queryClient.invalidateQueries({ queryKey: ['patient-profile'] })  // or 'doctor-profile-me'
+      showToast('success', 'Photo updated successfully.')
+    } catch (err: any) {
+      showToast('error', err?.response?.data?.error || 'Photo upload failed.')
     } finally {
       setAvatarLoading(false)
+      e.target.value = ''
     }
   }
 

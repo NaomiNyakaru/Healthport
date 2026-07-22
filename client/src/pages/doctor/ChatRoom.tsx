@@ -51,8 +51,24 @@ export default function ChatRoom() {
         const data: WSPayload = JSON.parse(event.data)
 
         if (data.type === 'history') {
-          // Initial history load on connect
-          setMessages(data.messages)
+          // Initial history load on connect.
+          // Backend sends message_id/sender_id per message (see
+          // ChatConsumer.get_recent_messages in consumers.py) — reshape to
+          // id/sender so it matches the live 'message' branch below.
+          // Without this, isMyMessage-style checks read msg.sender as
+          // undefined for every history message, so they'd all render on
+          // the wrong side once loaded from history.
+          setMessages(
+            data.messages.map((m: any) => ({
+              id:            m.message_id,
+              content:       m.content,
+              sender:        m.sender_id,
+              sender_name:   m.sender_name,
+              sender_avatar: m.sender_avatar,
+              is_read:       m.is_read,
+              created_at:    m.created_at,
+            }))
+          )
         } else if (data.type === 'message') {
           // New real-time message
           setMessages((prev) => {
@@ -155,13 +171,6 @@ export default function ChatRoom() {
         <div className="flex-1 min-w-0">
           <p className="font-medium text-gray-900 text-sm truncate">
             {room?.other_participant_name ?? 'Loading...'}
-          </p>
-          <p className="text-xs text-gray-400">
-            Appt: {room?.appointment_date
-              ? new Date(room.appointment_date).toLocaleDateString('en-KE', {
-                  month: 'short', day: 'numeric', year: 'numeric'
-                })
-              : ''}
           </p>
         </div>
 

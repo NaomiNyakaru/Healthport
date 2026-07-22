@@ -9,6 +9,7 @@ from .views import (
     MeView,
     ChangePasswordView,
     UpdatePushTokenView,
+    UpdateAvatarView,
 )
 
 urlpatterns = [
@@ -57,5 +58,7 @@ urlpatterns = [
     # Body: { "push_token": "ExponentPushToken[...]" }
     # Called once after the user grants notification permission on their phone.
     path('push-token/', UpdatePushTokenView.as_view(), name='push-token'),
+
+    path('me/avatar/', UpdateAvatarView.as_view(), name='update-avatar'),
 
 ]

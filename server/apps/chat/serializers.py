@@ -74,9 +74,24 @@ class ChatRoomSerializer(serializers.ModelSerializer):
     other_participant_avatar = serializers.SerializerMethodField()
     other_participant_id     = serializers.SerializerMethodField()
 
+    # Only populated when the other participant is a doctor — None for a
+    # doctor viewing their own inbox of patients.
+    other_participant_specialty = serializers.SerializerMethodField()
+
+    # Chat presence — powers the online dot / "last seen" text in the inbox.
+    # Set by ChatConsumer.set_online() in consumers.py on connect/disconnect.
+    other_participant_online     = serializers.SerializerMethodField()
+    other_participant_last_seen  = serializers.SerializerMethodField()
+
     # Last message preview — shown under the room name in the list
     last_message         = serializers.SerializerMethodField()
     last_message_time    = serializers.SerializerMethodField()
+
+    # Whether the logged-in user sent the last message — lets the inbox
+    # show a read-receipt tick (✓/✓✓) before the preview text, same idea
+    # as the ticks already shown inside an open ChatRoom.
+    last_message_is_mine = serializers.SerializerMethodField()
+    last_message_is_read = serializers.SerializerMethodField()
 
     # How many unread messages the logged-in user has in this room
     unread_count = serializers.SerializerMethodField()
@@ -97,9 +112,14 @@ class ChatRoomSerializer(serializers.ModelSerializer):
             'other_participant_id',
             'other_participant_name',
             'other_participant_avatar',
+            'other_participant_specialty',
+            'other_participant_online',
+            'other_participant_last_seen',
             # Last message preview
             'last_message',
             'last_message_time',
+            'last_message_is_mine',
+            'last_message_is_read',
             'unread_count',
             # Appointment context
             'appointment', 'appointment_date', 'appointment_status',
@@ -131,6 +151,36 @@ class ChatRoomSerializer(serializers.ModelSerializer):
         other = obj.get_other_participant(user)
         return other.get_avatar_url()
 
+    def get_other_participant_specialty(self, obj):
+        """
+        Returns the doctor's specialty display name (e.g. 'Cardiology'),
+        or None if the other participant isn't a doctor (i.e. this
+        serializer is being used for a doctor's own inbox of patients).
+        """
+        user  = self._get_request_user()
+        other = obj.get_other_participant(user)
+        if not other.is_doctor:
+            return None
+        try:
+            return other.doctor_profile.get_specialty_display()
+        except Exception:
+            # Doctor exists but has no profile yet (e.g. mid-signup) —
+            # fail quietly rather than 500ing the whole inbox list.
+            return None
+
+    def get_other_participant_online(self, obj):
+        user  = self._get_request_user()
+        other = obj.get_other_participant(user)
+        return other.is_online
+
+    def get_other_participant_last_seen(self, obj):
+        user  = self._get_request_user()
+        other = obj.get_other_participant(user)
+        if other.is_online or not other.last_seen:
+            # Online right now, or never connected — nothing to show.
+            return None
+        return other.last_seen.isoformat()
+
     def get_last_message(self, obj):
         """
         Returns a short preview of the last message.
@@ -152,6 +202,31 @@ class ChatRoomSerializer(serializers.ModelSerializer):
         if not last:
             return None
         return last.created_at.isoformat()
+
+    def get_last_message_is_mine(self, obj):
+        """
+        True if the logged-in user sent the most recent message in this
+        room. Lets the inbox show a read-receipt tick before the preview
+        text — same idea as the ticks already used inside an open
+        ChatRoom, just applied to the list view.
+        """
+        user = self._get_request_user()
+        last = obj.messages.order_by('-created_at').first()
+        if not last:
+            return None
+        return last.sender_id == user.id
+
+    def get_last_message_is_read(self, obj):
+        """
+        Whether the last message has been read by its recipient.
+        Only meaningful alongside last_message_is_mine=True — the
+        frontend uses this to pick a single gray tick (sent, unread)
+        vs a double blue tick (read), matching ChatRoom's own ticks.
+        """
+        last = obj.messages.order_by('-created_at').first()
+        if not last:
+            return None
+        return last.is_read
 
     def get_unread_count(self, obj):
         """

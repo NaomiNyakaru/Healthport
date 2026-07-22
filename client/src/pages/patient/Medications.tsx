@@ -178,12 +178,23 @@ export default function Medications() {
     <div className="page-container space-y-6">
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div>
+        <h1 className="page-title">Medications</h1>
+        <p className="text-gray-500 text-sm mt-1">Track your prescriptions and log doses</p>
+      </div>
+
+      {/* Self-tracking: separate from doctor-prescribed medications above */}
+      <div className="card flex items-center justify-between gap-4 bg-blue-50/40 border-blue-100">
         <div>
-          <h1 className="page-title">Medications</h1>
-          <p className="text-gray-500 text-sm mt-1">Track your prescriptions and log doses</p>
+          <p className="text-sm font-medium text-gray-800">Taking something your doctor didn't log?</p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Add it yourself to keep track of doses alongside your prescriptions.
+          </p>
         </div>
-        <button onClick={() => { setShowAdd(true); setAddError('') }} className="btn-primary">
+        <button
+          onClick={() => { setShowAdd(true); setAddError('') }}
+          className="btn-primary text-sm px-3 py-1.5 flex-shrink-0"
+        >
           <Plus className="w-4 h-4" /> Add medication
         </button>
       </div>
@@ -237,14 +248,6 @@ export default function Medications() {
             <Pill className="w-6 h-6 text-gray-400" />
           </div>
           <p className="font-medium text-gray-700">No medications found</p>
-          <p className="text-sm text-gray-400 mt-1 mb-6">
-            {filter === 'true' ? 'No active medications' : filter === 'false' ? 'No inactive medications' : 'Add your first medication to start tracking'}
-          </p>
-          {!filter && (
-            <button onClick={() => setShowAdd(true)} className="btn-primary">
-              <Plus className="w-4 h-4" /> Add medication
-            </button>
-          )}
         </div>
       )}
 

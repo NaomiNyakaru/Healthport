@@ -158,6 +158,58 @@ class MedicalRecord(models.Model):
         return f'{self.get_record_type_display()} — {self.patient.user.full_name} ({self.date_of_record})'
 
 
+# ─── 2b. Record attachment ────────────────────────────────────────────────────
+
+class RecordAttachment(models.Model):
+    """
+    A single file attached to a MedicalRecord.
+
+    A medical record can carry multiple files — e.g. one consultation
+    might have a lab result PDF, a referral letter, and a photo of a scan,
+    each uploaded separately. This is separate from MedicalRecord.attachment
+    (a legacy single-file field kept for backward compatibility).
+
+    Only a verified doctor can upload attachments (see
+    RecordAttachmentListCreateView.create() in views.py, which enforces
+    this at the view level). Either the owning patient or a doctor who can
+    already see the record may list/download them.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    record = models.ForeignKey(
+        MedicalRecord,
+        on_delete=models.CASCADE,
+        related_name='attachments',
+    )
+
+    file = models.FileField(upload_to='medical_records/attachments/')
+
+    # Captured at upload time so the original name/type survive even if
+    # the stored filename gets hashed/renamed by the storage backend.
+    original_filename = models.CharField(max_length=255)
+    content_type       = models.CharField(max_length=100, blank=True)
+    size_bytes         = models.PositiveIntegerField(default=0)
+
+    # The doctor who uploaded this specific file. SET_NULL so the
+    # attachment survives even if that doctor's account is later removed.
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='uploaded_attachments',
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'record_attachments'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.original_filename} — {self.record.title}'
+
+
 # ─── 3. Medication ────────────────────────────────────────────────────────────
 
 class Medication(models.Model):
