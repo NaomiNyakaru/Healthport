@@ -45,70 +45,6 @@ class PatientProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at']
 
 
-# ─── 2. Medical record ────────────────────────────────────────────────────────
-
-class MedicalRecordSerializer(serializers.ModelSerializer):
-    """
-    Create and read medical records.
-
-    Used on:
-    - GET  /api/v1/patients/me/records/         patient's own records
-    - POST /api/v1/patients/me/records/         patient adds a record
-    - GET  /api/v1/patients/<id>/records/       doctor views patient records
-
-    Smart behaviour in create():
-    If the request comes from a verified doctor, they are automatically
-    set as the record's author. The patient never sets the doctor field.
-    """
-
-    # Show the doctor's name in read responses without exposing their full object
-    doctor_name = serializers.CharField(
-        source='doctor.full_name',
-        read_only=True,
-    )
-    record_type_display = serializers.CharField(
-        source='get_record_type_display',
-        read_only=True,
-    )
-
-    class Meta:
-        model  = MedicalRecord
-        fields = [
-            'id',
-            'record_type', 'record_type_display',
-            'title', 'description',
-            'date_of_record',
-            'attachment',
-            'is_private',
-            # Doctor info
-            'doctor', 'doctor_name',
-            # Timestamps
-            'created_at',
-        ]
-        read_only_fields = ['id', 'doctor', 'created_at']
-        # doctor is read-only here because it's set automatically in create()
-        # not by the user submitting the form
-
-    def validate_date_of_record(self, value):
-        """Record date cannot be in the future."""
-        from datetime import date
-        if value > date.today():
-            raise serializers.ValidationError(
-                'Date of record cannot be in the future.'
-            )
-        return value
-
-    def create(self, validated_data):
-        """
-        If the request comes from a doctor, tag them as the author.
-        The view passes request via context so we can access it here.
-        """
-        request = self.context.get('request')
-        if request and request.user.is_doctor:
-            validated_data['doctor'] = request.user
-        return super().create(validated_data)
-
-
 # ─── 2b. Record attachment ────────────────────────────────────────────────────
 
 class RecordAttachmentSerializer(serializers.ModelSerializer):
@@ -119,6 +55,7 @@ class RecordAttachmentSerializer(serializers.ModelSerializer):
     - GET  /api/v1/patients/records/<record_id>/attachments/       list
     - POST /api/v1/patients/records/<record_id>/attachments/       upload
     - GET  /api/v1/patients/records/<record_id>/attachments/<id>/  detail
+    - Nested (read-only) inside MedicalRecordSerializer.attachments below
 
     Only 'file' is ever submitted by the client (see
     RecordAttachmentListCreateView.create() in views.py, which validates
@@ -148,6 +85,76 @@ class RecordAttachmentSerializer(serializers.ModelSerializer):
             'uploaded_by',
             'created_at',
         ]
+
+
+# ─── 2. Medical record ────────────────────────────────────────────────────────
+
+class MedicalRecordSerializer(serializers.ModelSerializer):
+    """
+    Create and read medical records.
+
+    Used on:
+    - GET  /api/v1/patients/me/records/         patient's own records
+    - POST /api/v1/patients/me/records/         patient adds a record
+    - GET  /api/v1/patients/<id>/records/       doctor views patient records
+
+    Smart behaviour in create():
+    If the request comes from a verified doctor, they are automatically
+    set as the record's author. The patient never sets the doctor field.
+    """
+
+    # Show the doctor's name in read responses without exposing their full object
+    doctor_name = serializers.CharField(
+        source='doctor.full_name',
+        read_only=True,
+    )
+    record_type_display = serializers.CharField(
+        source='get_record_type_display',
+        read_only=True,
+    )
+    description = serializers.CharField(required=False, allow_blank=True)
+
+    # Every file uploaded against this record (see RecordAttachment below).
+    # Read-only — files are added via the separate attachments endpoint,
+    # not by posting to this serializer.
+    attachments = RecordAttachmentSerializer(many=True, read_only=True)
+
+    class Meta:
+        model  = MedicalRecord
+        fields = [
+            'id',
+            'record_type', 'record_type_display',
+            'title', 'description',
+            'date_of_record',
+            'attachment', 'attachments',
+            'is_private',
+            # Doctor info
+            'doctor', 'doctor_name',
+            # Timestamps
+            'created_at',
+        ]
+        read_only_fields = ['id', 'doctor', 'created_at']
+        # doctor is read-only here because it's set automatically in create()
+        # not by the user submitting the form
+
+    def validate_date_of_record(self, value):
+        """Record date cannot be in the future."""
+        from datetime import date
+        if value > date.today():
+            raise serializers.ValidationError(
+                'Date of record cannot be in the future.'
+            )
+        return value
+
+    def create(self, validated_data):
+        """
+        If the request comes from a doctor, tag them as the author.
+        The view passes request via context so we can access it here.
+        """
+        request = self.context.get('request')
+        if request and request.user.is_doctor:
+            validated_data['doctor'] = request.user
+        return super().create(validated_data)
 
 
 # ─── 3. Medication ────────────────────────────────────────────────────────────

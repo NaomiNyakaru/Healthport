@@ -91,7 +91,7 @@ export default function DoctorProfile() {
         consultation_fee: data.consultation_fee === '' ? null : data.consultation_fee,
       }).then(r => r.data),
     onSuccess: (updated) => {
-      queryClient.setQueryData(['doctor-profile-me'], updated)
+      queryClient.setQueryData(['doctor-profile-me'], (old: DoctorProfile | undefined) => ({ ...old, ...updated }))
       // Also update sidebar verification badge info via authStore
       updateUser({ is_verified: updated.is_verified })
       setEditing(false)
@@ -106,7 +106,7 @@ export default function DoctorProfile() {
     mutationFn: (val: boolean) =>
       apiClient.patch<DoctorProfile>('/doctors/me/', { is_accepting_patients: val }).then(r => r.data),
     onSuccess: (updated) => {
-      queryClient.setQueryData(['doctor-profile-me'], updated)
+      queryClient.setQueryData(['doctor-profile-me'], (old: DoctorProfile | undefined) => ({ ...old, ...updated }))
       showToast(
         'success',
         updated.is_accepting_patients ? 'You are now accepting patients.' : 'You are no longer accepting new patients.'

@@ -233,3 +233,90 @@ export interface APIError {
   message?: string
   detail?:  Record<string, string[]> | string[]
 }
+
+// ─── Admin ──────────────────────────────────────────────────────────────────
+ 
+export interface AdminStats {
+  total_users:            number
+  total_patients:         number
+  total_doctors:          number
+  pending_doctors:        number
+  verified_doctors:       number
+  rejected_doctors:       number
+  active_users_today:     number
+  total_appointments:     number
+  pending_appointments:   number
+  upcoming_appointments:  number
+  total_medical_records:  number
+  total_medications:      number
+}
+ 
+export interface AdminUser {
+  id:           string
+  email:        string
+  full_name:    string
+  first_name:   string
+  last_name:    string
+  phone:        string
+  avatar:       string | null
+  role:         UserRole
+  is_active:    boolean
+  is_staff:     boolean
+  is_superuser?: boolean
+  is_online:    boolean
+  last_seen?:   string | null
+  date_joined:  string
+  updated_at?:  string
+}
+ 
+export interface AdminDoctor {
+  id:                    number
+  user_id:               string
+  full_name:             string
+  email:                 string
+  phone:                 string
+  avatar:                string | null
+  is_active:             boolean
+  kmpdc_number:          string
+  verification_status:   'pending' | 'verified' | 'rejected'
+  verification_status_display: string
+  is_verified:           boolean
+  verification_note:     string
+  verified_at:           string | null
+  specialty:             string
+  specialty_display:     string
+  years_of_experience:   number
+  bio:                   string
+  hospital_affiliation:  string
+  consultation_fee:      string | null
+  is_accepting_patients: boolean
+  average_rating:        string
+  total_reviews:         number
+  created_at:            string
+}
+ 
+export interface AdminPatient {
+  id:                      number
+  user_id:                 string
+  full_name:               string
+  email:                   string
+  phone:                   string
+  avatar:                  string | null
+  is_active:               boolean
+  age:                     number | null
+  date_of_birth:           string | null
+  gender:                  'male' | 'female' | 'other' | ''
+  blood_group:             string
+  national_id:             string
+  allergies:               string
+  chronic_conditions:      string
+  emergency_contact_name:  string
+  emergency_contact_phone: string
+  created_at:              string
+  updated_at:              string
+}
+ 
+export interface AdminAppointment extends Appointment {
+  reminder_24h_sent: boolean
+  reminder_1h_sent:  boolean
+}

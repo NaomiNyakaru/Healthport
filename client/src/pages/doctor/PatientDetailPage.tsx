@@ -6,7 +6,7 @@ import {
   ArrowLeft, User, Heart, AlertCircle, Phone,
   Calendar, Clock, Video, MapPin, FileText,
   Lock, Unlock, Paperclip, MessageSquare, ChevronDown, ChevronUp,
-  Plus, X, Pill, RefreshCw, CalendarDays, CheckCircle, XCircle
+  Plus, X, Pill, RefreshCw, CalendarDays, CheckCircle, XCircle, Sparkles
 } from 'lucide-react'
 import type {
   PatientProfile, MedicalRecord, Appointment, Medication, DosageLog, PaginatedResponse
@@ -318,6 +318,35 @@ export default function PatientDetailPage() {
 
   const logs = logsData?.results ?? []
 
+  // ── AI patient summary ────────────────────────────────────────────────────
+  const {
+    data:      summaryData,
+    isLoading: summaryLoading,
+    refetch:   refetchSummary,
+  } = useQuery({
+    queryKey: ['patient-summary', id],
+    queryFn:  () =>
+      apiClient
+        .get<{ summary: string; was_cached: boolean; generated_at: string | null }>(
+          `/ai/patients/${id}/summary/`
+        )
+        .then(r => r.data),
+    enabled:   !!id,
+    staleTime: 1000 * 60 * 5,   // treat as fresh for 5 min — don't re-hit Gemini on every tab switch
+  })
+
+  const regenerateMutation = useMutation({
+    mutationFn: () =>
+      apiClient
+        .get<{ summary: string; was_cached: boolean; generated_at: string | null }>(
+          `/ai/patients/${id}/summary/?refresh=true`
+        )
+        .then(r => r.data),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['patient-summary', id], data)
+    },
+  })
+
   // ── Log a dose on the patient's behalf (e.g. a dose given in-clinic) ─────
 
   const logDoseMutation = useMutation({
@@ -553,6 +582,56 @@ export default function PatientDetailPage() {
 
       {/* ── Medical records ───────────────────────────────────────────────────── */}
       <SectionCard title="Medical Records" icon={FileText}>
+        {/* ── AI Clinical Summary ──────────────────────────────────────────────── */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-5 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Sparkles className="w-3.5 h-3.5 text-white" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">AI Clinical Brief</p>
+              {summaryData?.generated_at && (
+                <p className="text-xs text-gray-400">
+                  Generated {new Date(summaryData.generated_at).toLocaleString('en-KE', {
+                    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+                  })}
+                  {summaryData.was_cached ? ' · cached' : ' · fresh'}
+                </p>
+              )}
+            </div>
+          </div>
+          <button
+            onClick={() => regenerateMutation.mutate()}
+            disabled={regenerateMutation.isPending || summaryLoading}
+            className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 font-medium disabled:opacity-40 transition-colors flex-shrink-0"
+            title="Regenerate summary"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${regenerateMutation.isPending ? 'animate-spin' : ''}`} />
+            {regenerateMutation.isPending ? 'Regenerating...' : 'Refresh'}
+          </button>
+        </div>
+
+        {summaryLoading ? (
+          <div className="space-y-2">
+            <div className="h-3.5 bg-blue-100 rounded animate-pulse w-full" />
+            <div className="h-3.5 bg-blue-100 rounded animate-pulse w-5/6" />
+            <div className="h-3.5 bg-blue-100 rounded animate-pulse w-4/6" />
+          </div>
+        ) : summaryData?.summary ? (
+          <p className="text-sm text-gray-700 leading-relaxed">{summaryData.summary}</p>
+        ) : (
+          <p className="text-sm text-gray-400 italic">
+            Summary unavailable — check that your GEMINI_API_KEY is configured.
+          </p>
+        )}
+
+        <p className="text-xs text-gray-400 border-t border-blue-100 pt-2">
+          AI-generated briefing — always verify against the full records below.
+          Not a substitute for clinical judgment.
+        </p>
+      </div> 
+      
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2 flex-1">
             <Lock className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
@@ -585,7 +664,7 @@ export default function PatientDetailPage() {
             {records!.results.map(rec => (
               <div
                 key={rec.id}
-                className="border border-gray-100 rounded-xl px-4 py-3 space-y-1"
+                className="border border-gray-300 rounded-xl px-4 py-3 space-y-1"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -606,17 +685,12 @@ export default function PatientDetailPage() {
                 </div>
 
                 {rec.description && (
-                  <p className="text-sm text-gray-600 leading-relaxed line-clamp-2">
+                  <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
                     {rec.description}
                   </p>
                 )}
 
                 <div className="flex items-center gap-3 pt-1 flex-wrap">
-                  {rec.doctor_name && (
-                    <p className="text-xs text-gray-400">
-                      by {rec.doctor_name}
-                    </p>
-                  )}
                   {rec.attachments?.map(att => (
                     <a
                       key={att.id}
@@ -660,7 +734,7 @@ export default function PatientDetailPage() {
         {!medsLoading && medications.length > 0 && (
           <div className="space-y-2">
             {medications.map(med => (
-              <div key={med.id} className="border border-gray-100 rounded-xl p-3">
+              <div key={med.id} className="border border-gray-300 rounded-xl p-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-medium text-gray-900 truncate">{med.name}</p>

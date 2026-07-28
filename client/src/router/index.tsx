@@ -41,6 +41,14 @@ const DoctorChatInbox     = lazy(() => import('../pages/doctor/ChatInbox'))
 const DoctorChatRoom      = lazy(() => import('../pages/doctor/ChatRoom'))
 const VerificationPending = lazy(() => import('../pages/doctor/VerificationPending'))
 
+// ── Admin pages ────────────────────────────────────────────────────────────
+const AdminLayout         = lazy(() => import('../pages/admin/AdminLayout'))
+const AdminDashboard      = lazy(() => import('../pages/admin/AdminDashboard'))
+const AdminUsers          = lazy(() => import('../pages/admin/AdminUsers'))
+const AdminDoctors        = lazy(() => import('../pages/admin/AdminDoctors'))
+const AdminAppointments   = lazy(() => import('../pages/admin/AdminAppointments'))
+const AdminPatients       = lazy(() => import('../pages/admin/AdminPatients'))
+
 // ── Simple token-based guards (no Zustand in router) ──────────────────────
 // Reading from Zustand inside the router caused the infinite loop.
 // We use localStorage directly here — Zustand is only used inside pages.
@@ -54,12 +62,20 @@ const RequireAuth = () => {
 const RequirePatient = () => {
   const role = localStorage.getItem('hp_role')
   if (role === 'doctor') return <Navigate to="/doctor/dashboard" replace />
+  if (role === 'admin') return <Navigate to="/admin/dashboard" replace />
   return <Outlet />
 }
 
 const RequireDoctor = () => {
   const role = localStorage.getItem('hp_role')
   if (role === 'patient') return <Navigate to="/patient/dashboard" replace />
+  if (role === 'admin') return <Navigate to="/admin/dashboard" replace />
+  return <Outlet />
+}
+
+const RequireAdmin = () => {
+  const role = localStorage.getItem('hp_role')
+  if (role !== 'admin') return <Navigate to="/" replace />
   return <Outlet />
 }
 
@@ -68,6 +84,7 @@ const RootRedirect = () => {
   if (!token) return <Navigate to="/login" replace />
   const role = localStorage.getItem('hp_role')
   if (role === 'doctor') return <Navigate to="/doctor/dashboard" replace />
+  if (role === 'admin') return <Navigate to="/admin/dashboard" replace />
   return <Navigate to="/patient/dashboard" replace />
 }
 
@@ -119,6 +136,26 @@ export const router = createBrowserRouter([
           { path: 'chat/:roomId',    element: S(DoctorChatRoom) },
           { path: 'profile',         element: S(DoctorProfile) },
           { path: 'verification',    element: S(VerificationPending) },
+        ],
+      }],
+    }],
+  },
+
+  // Admin routes
+  {
+    element: <RequireAuth />,
+    children: [{
+      element: <RequireAdmin />,
+      children: [{
+        path: '/admin',
+        element: S(AdminLayout),
+        children: [
+          { index: true,               element: <Navigate to="dashboard" replace /> },
+          { path: 'dashboard',         element: S(AdminDashboard) },
+          { path: 'users',             element: S(AdminUsers) },
+          { path: 'doctors',           element: S(AdminDoctors) },
+          { path: 'appointments',      element: S(AdminAppointments) },
+          { path: 'patients',          element: S(AdminPatients) },
         ],
       }],
     }],

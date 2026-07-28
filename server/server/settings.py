@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'apps.patients',
     'apps.appointments',
     'apps.chat',
+    'apps.ai',
+    'apps.adminpanel',
     
 ]
 
@@ -230,3 +232,9 @@ CHANNEL_LAYERS = {
 CELERY_BROKER_URL    = config('REDIS_URL', default='redis://localhost:6379/0')
 CELERY_RESULT_BACKEND = config('REDIS_URL', default='redis://localhost:6379/0')
 CELERY_TIMEZONE      = 'Africa/Nairobi'
+
+# ─── AI (Google Gemini) ────────────────────────────────────────────────────────
+# Used by apps.ai for pre-appointment symptom triage and (later) doctor-side
+# medical history summarization. Get a key from https://aistudio.google.com/
+GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
+GEMINI_MODEL   = config('GEMINI_MODEL', default='gemini-flash-latest')

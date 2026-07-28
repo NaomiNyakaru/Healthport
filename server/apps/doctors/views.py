@@ -109,6 +109,19 @@ class MyDoctorProfileView(generics.RetrieveUpdateAPIView):
         # A doctor can never accidentally edit another doctor's profile.
         return self.request.user.doctor_profile
 
+    def update(self, request, *args, **kwargs):
+        # DoctorUpdateSerializer only echoes back the handful of fields a
+        # doctor is allowed to write (bio, fee, availability, etc). If we
+        # returned that response as-is, a caller that caches "the profile"
+        # keyed on this response (as the client does) would silently lose
+        # verification_status, is_verified, kmpdc_number, and rating —
+        # which previously made a freshly-saved, already-verified doctor
+        # appear to fall back to "pending" in the UI. Always hand back the
+        # full read representation instead, so PATCH and GET agree on shape.
+        super().update(request, *args, **kwargs)
+        instance = self.get_object()
+        return Response(DoctorProfileSerializer(instance).data)
+
 
 # ─── 4. Verification status ───────────────────────────────────────────────────
 

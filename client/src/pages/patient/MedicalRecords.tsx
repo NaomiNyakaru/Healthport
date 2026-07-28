@@ -210,9 +210,6 @@ export default function MedicalRecords() {
 
                       {record.doctor_name && (
                         <div className="flex items-center gap-1.5 mt-3">
-                          <span className="w-4 h-4 rounded-full bg-blue-50 text-blue-600 text-[9px] font-semibold flex items-center justify-center flex-shrink-0">
-                            {record.doctor_name.charAt(0).toUpperCase()}
-                          </span>
                           <p className="text-xs text-gray-400">
                             Added by <span className="font-medium text-gray-600">Dr. {record.doctor_name}</span>
                           </p>

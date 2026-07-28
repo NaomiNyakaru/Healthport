@@ -1,8 +1,11 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { apiClient } from '../../api/client'
-import { Search, Star, MapPin, Briefcase, Filter } from 'lucide-react'
+import {
+  Search, Star, MapPin, Briefcase, Filter,
+  Sparkles, AlertTriangle, Loader2, X, ArrowRight
+} from 'lucide-react'
 import type { DoctorProfile, PaginatedResponse } from '../../types'
 
 const SPECIALTIES = [
@@ -22,10 +25,44 @@ const SPECIALTIES = [
   { value: 'dentistry',        label: 'Dentistry' },
 ]
 
+// Human-readable label lookup for the suggested specialty
+const specialtyLabel = (value: string) =>
+  SPECIALTIES.find((s) => s.value === value)?.label ?? value
+
+interface TriageResult {
+  suggested_specialty: string
+  urgency: 'low' | 'medium' | 'high'
+  explanation: string
+}
+
 export default function BrowseDoctors() {
   const [search,    setSearch]    = useState('')
   const [specialty, setSpecialty] = useState('')
   const [accepting, setAccepting] = useState(false)
+
+  // ── Symptom triage widget ──────────────────────────────────────────────────
+  const [showTriage, setShowTriage] = useState(false)
+  const [symptoms,   setSymptoms]   = useState('')
+  const [triageResult, setTriageResult] = useState<TriageResult | null>(null)
+
+  const triageMutation = useMutation({
+    mutationFn: () =>
+      apiClient.post<TriageResult>('/ai/triage/', { symptoms })
+        .then((r) => r.data),
+    onSuccess: (result) => setTriageResult(result),
+  })
+
+  const handleTriage = () => {
+    if (!symptoms.trim()) return
+    setTriageResult(null)
+    triageMutation.mutate()
+  }
+
+  const applyTriageSuggestion = () => {
+    if (!triageResult) return
+    setSpecialty(triageResult.suggested_specialty)
+    setShowTriage(false)
+  }
 
   const { data, isLoading } = useQuery({
     queryKey: ['doctors', search, specialty, accepting],
@@ -51,6 +88,116 @@ export default function BrowseDoctors() {
           Browse verified doctors and book an appointment
         </p>
       </div>
+
+      {/* ── Symptom triage entry point ─────────────────────────────────────── */}
+      {!showTriage && (
+        <button
+          onClick={() => setShowTriage(true)}
+          className="w-full flex items-center gap-3 p-4 rounded-2xl border border-blue-100 bg-blue-50/60 hover:bg-blue-50 transition-colors text-left"
+        >
+          <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+            <Sparkles className="w-4 h-4 text-white" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-gray-900">Not sure who to see?</p>
+            <p className="text-xs text-gray-500">Describe your symptoms and we'll suggest a specialty</p>
+          </div>
+          <ArrowRight className="w-4 h-4 text-blue-400 flex-shrink-0" />
+        </button>
+      )}
+
+      {showTriage && (
+        <div className="card p-4 space-y-4 border-blue-100">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-blue-600" />
+              <p className="text-sm font-medium text-gray-900">Describe your symptoms</p>
+            </div>
+            <button
+              onClick={() => { setShowTriage(false); setTriageResult(null); setSymptoms('') }}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <textarea
+            className="input resize-none"
+            rows={3}
+            placeholder='e.g. "I have had a sharp headache and blurred vision since yesterday"'
+            value={symptoms}
+            onChange={(e) => setSymptoms(e.target.value)}
+            maxLength={1000}
+          />
+
+          <p className="text-xs text-gray-400 -mt-2">
+            This is not a diagnosis — it only helps point you to the right kind of doctor.
+            If this is an emergency, call 999/112 or go to the nearest hospital.
+          </p>
+
+          <button
+            onClick={handleTriage}
+            disabled={!symptoms.trim() || triageMutation.isPending}
+            className="btn-primary w-full"
+          >
+            {triageMutation.isPending ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing...</>
+            ) : (
+              <><Sparkles className="w-4 h-4" /> Get suggestion</>
+            )}
+          </button>
+
+          {triageMutation.isError && (
+            <p className="text-xs text-red-500 text-center">
+              Something went wrong. Please try again.
+            </p>
+          )}
+
+          {/* Result */}
+          {triageResult && (
+            <div className={`rounded-xl p-4 space-y-3 border ${
+              triageResult.urgency === 'high'
+                ? 'bg-red-50 border-red-200'
+                : 'bg-gray-50 border-gray-200'
+            }`}>
+              {triageResult.urgency === 'high' ? (
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-red-700">
+                      This may need urgent care
+                    </p>
+                    <p className="text-xs text-red-600 mt-0.5">{triageResult.explanation}</p>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm text-gray-500">Suggested:</span>
+                    <span className="text-sm font-semibold text-blue-700 bg-blue-100 px-2.5 py-0.5 rounded-full">
+                      {specialtyLabel(triageResult.suggested_specialty)}
+                    </span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                      triageResult.urgency === 'medium'
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-green-100 text-green-700'
+                    }`}>
+                      {triageResult.urgency === 'medium' ? 'See a doctor soon' : 'Routine'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">{triageResult.explanation}</p>
+                </div>
+              )}
+
+              {triageResult.urgency !== 'high' && (
+                <button onClick={applyTriageSuggestion} className="btn-secondary w-full text-sm">
+                  Show me {specialtyLabel(triageResult.suggested_specialty)} doctors
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="card p-4 space-y-3">
