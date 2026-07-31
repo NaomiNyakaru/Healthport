@@ -3,8 +3,7 @@ import { Link } from 'react-router-dom'
 import { apiClient } from '../../api/client'
 import { useUser } from '../../store/authStore'
 import {
-  Users, Stethoscope, Calendar, ClipboardList,
-  Pill, ShieldAlert, ChevronRight, Clock
+  Users, Stethoscope, Calendar, ShieldAlert, ChevronRight, Clock
 } from 'lucide-react'
 import type { AdminStats, AdminDoctor, PaginatedResponse } from '../../types'
 

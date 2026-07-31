@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../../api/client'
 import { Search, Calendar, Trash2, Video, MapPin } from 'lucide-react'
-import type { AdminAppointment, PaginatedResponse, AppointmentStatus } from '../../types'
+import type { AdminAppointment, PaginatedResponse } from '../../types'
 
 const statusClass: Record<string, string> = {
   pending:   'badge-pending',
@@ -41,11 +41,6 @@ export default function AdminAppointments() {
   })
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['admin', 'appointments'] })
-
-  const setApptStatus = async (id: string, newStatus: AppointmentStatus) => {
-    await apiClient.patch(`/admin/appointments/${id}/`, { status: newStatus })
-    refresh()
-  }
 
   const deleteAppt = async (id: string) => {
     if (!confirm('Permanently delete this appointment record?')) return

@@ -52,7 +52,6 @@ export default function PatientDashboard() {
   return (
     <div className="page-container space-y-6">
 
-      {/* Welcome */}
       <div>
         <h1 className="page-title">
           Good Morning, {user?.first_name}
@@ -62,7 +61,6 @@ export default function PatientDashboard() {
         </p>
       </div>
 
-      {/* Next appointment banner */}
       {nextAppt ? (
         <div className="bg-blue-600 rounded-2xl p-6 text-white">
           <p className="text-blue-200 text-sm font-medium mb-1">Next Appointment</p>
@@ -108,7 +106,6 @@ export default function PatientDashboard() {
         </div>
       )}
 
-      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {stats.map(({ label, value, icon: Icon, to, color }) => (
           <Link key={to} to={to} className="card-hover flex items-center gap-4">
@@ -123,7 +120,6 @@ export default function PatientDashboard() {
         ))}
       </div>
 
-      {/* Quick actions */}
       <div>
         <h2 className="section-title mb-3">Quick actions</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -162,7 +158,6 @@ export default function PatientDashboard() {
         </div>
       </div>
 
-      {/* Recent messages */}
       {(chatData?.results?.length ?? 0) > 0 && (
         <div>
           <div className="flex items-center justify-between mb-3">

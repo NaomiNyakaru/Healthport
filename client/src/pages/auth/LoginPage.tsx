@@ -22,9 +22,7 @@ export default function LoginPage() {
       const { data } = await apiClient.post<LoginResponse>('/auth/login/', form)
       login(data.user, { access: data.access, refresh: data.refresh })
 
-      // Redirect based on role
       if (data.user.role === 'doctor') {
-        // Pending doctors go to verification screen
         if (!data.user.is_verified) {
           navigate('/doctor/verification')
         } else {
@@ -48,7 +46,6 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-blue-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
 
-        {/* Logo + heading */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-600 rounded-2xl mb-4 shadow-lg">
             <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -60,7 +57,6 @@ export default function LoginPage() {
           <p className="text-gray-500 mt-1">Sign in to your account</p>
         </div>
 
-        {/* Card */}
         <div className="card">
           <form onSubmit={handleSubmit} className="space-y-4">
 
@@ -71,7 +67,6 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Email */}
             <div>
               <label className="label" htmlFor="email">Email address</label>
               <input
@@ -86,7 +81,6 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* Password */}
             <div>
               <label className="label" htmlFor="password">Password</label>
               <input
@@ -101,7 +95,6 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
               className="btn-primary w-full py-2.5 mt-2"
@@ -116,7 +109,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Register links */}
           <div className="mt-6 pt-6 border-t border-gray-100 text-center space-y-2">
             <p className="text-sm text-gray-500">
               New patient?{' '}

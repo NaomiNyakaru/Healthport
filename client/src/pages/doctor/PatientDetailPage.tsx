@@ -322,7 +322,6 @@ export default function PatientDetailPage() {
   const {
     data:      summaryData,
     isLoading: summaryLoading,
-    refetch:   refetchSummary,
   } = useQuery({
     queryKey: ['patient-summary', id],
     queryFn:  () =>
@@ -388,10 +387,6 @@ export default function PatientDetailPage() {
 
   // ── Find a chat room with this patient ───────────────────────────────────
   // We'll use the first confirmed/completed appointment's chat room
-  const firstLinkedAppt = sharedAppts.find(
-    a => a.status === 'confirmed' || a.status === 'completed'
-  )
-
   // ── Loading state ────────────────────────────────────────────────────────
 
   if (profileLoading) return (

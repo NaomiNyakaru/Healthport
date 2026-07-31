@@ -4,7 +4,7 @@ import { useUser, useAuthStore } from '../../store/authStore'
 import { apiClient } from '../../api/client'
 import {
   User, Mail, Phone, ShieldCheck, Star,
-  Briefcase, MapPin, DollarSign, Edit3, Save, X,
+  Briefcase, MapPin, Edit3, Save, X,
   CheckCircle, AlertCircle, Camera, ToggleLeft, ToggleRight,
   Clock
 } from 'lucide-react'

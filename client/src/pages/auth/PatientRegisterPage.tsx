@@ -36,7 +36,6 @@ export default function PatientRegisterPage() {
       const detail = axiosError.response?.data?.detail
 
       if (detail && typeof detail === 'object' && !Array.isArray(detail)) {
-        // Field-level errors — map each field to its first error message
         const fieldErrors: Record<string, string> = {}
         Object.entries(detail).forEach(([key, val]) => {
           fieldErrors[key] = Array.isArray(val) ? val[0] : String(val)

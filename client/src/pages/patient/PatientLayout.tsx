@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuthStore, useUser } from '../../store/authStore'
 import {
   Home, Search, Calendar, FileText, Pill,
-  MessageSquare, User, LogOut, Menu, X, Heart
+  MessageSquare, User, LogOut, Menu, Heart
 } from 'lucide-react'
 
 const navItems = [

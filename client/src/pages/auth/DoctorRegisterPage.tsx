@@ -51,7 +51,6 @@ export default function DoctorRegisterPage() {
         { ...form, years_of_experience: parseInt(form.years_of_experience) }
       )
       login(data.user, data.tokens)
-      // New doctors always go to verification pending screen
       navigate('/doctor/verification')
     } catch (err) {
       const axiosError = err as AxiosError<APIError>
@@ -97,7 +96,6 @@ export default function DoctorRegisterPage() {
               </div>
             )}
 
-            {/* Personal info */}
             <div className="grid grid-cols-2 gap-4">
               {['first_name', 'last_name'].map((key) => (
                 <div key={key}>
@@ -126,7 +124,6 @@ export default function DoctorRegisterPage() {
                 onChange={(e) => setF('phone', e.target.value)} />
             </div>
 
-            {/* KMPDC section */}
             <div className="border-t border-gray-100 pt-4">
               <p className="text-sm font-medium text-gray-700 mb-3">
                 KMPDC Registration
@@ -165,7 +162,7 @@ export default function DoctorRegisterPage() {
               </div>
             </div>
 
-            {/* Password */}
+
             <div className="border-t border-gray-100 pt-4 space-y-4">
               <div>
                 <label className="label" htmlFor="password">Password</label>

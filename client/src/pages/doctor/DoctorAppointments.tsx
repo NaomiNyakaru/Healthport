@@ -4,8 +4,8 @@ import { Link } from 'react-router-dom'
 import { apiClient } from '../../api/client'
 import {
   Calendar, Clock, Video, MapPin, CheckCircle,
-  XCircle, ClipboardList, AlertCircle, ChevronDown,
-  MessageSquare, User
+  XCircle, ClipboardList, AlertCircle,
+  MessageSquare
 } from 'lucide-react'
 import type { Appointment, PaginatedResponse } from '../../types'
 

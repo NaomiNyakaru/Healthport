@@ -56,13 +56,11 @@ export default function DoctorDashboard() {
   return (
     <div className="page-container space-y-6">
 
-      {/* Welcome */}
       <div>
         <h1 className="page-title">Welcome, Dr. {user?.first_name}</h1>
         <p className="text-gray-500 mt-1 text-sm">Here's your schedule for today.</p>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           { label: 'Upcoming appointments', value: upcoming.length, icon: Calendar, to: '/doctor/appointments', color: 'bg-blue-50 text-blue-600' },
@@ -81,7 +79,6 @@ export default function DoctorDashboard() {
         ))}
       </div>
 
-      {/* Next appointment */}
       {nextAppt && (
         <div className="bg-blue-600 rounded-2xl p-6 text-white">
           <p className="text-blue-200 text-sm font-medium mb-1">Next Appointment</p>
@@ -100,7 +97,6 @@ export default function DoctorDashboard() {
         </div>
       )}
 
-      {/* Pending appointments needing action */}
       {pending.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-3">
@@ -147,7 +143,6 @@ export default function DoctorDashboard() {
         </div>
       )}
 
-      {/* Recent messages */}
       {(chatData?.results?.length ?? 0) > 0 && (
         <div>
           <div className="flex items-center justify-between mb-3">

@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../../api/client'
 import {
-  Search, Plus, X, User as UserIcon, Trash2,
-  ShieldCheck, ShieldOff, CheckCircle2, XCircle
+  Search, Plus, X, User as Trash2,
+  CheckCircle2, XCircle
 } from 'lucide-react'
 import type { AdminUser, PaginatedResponse, UserRole } from '../../types'
 
