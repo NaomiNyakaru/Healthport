@@ -24,11 +24,11 @@
   .card   { @apply bg-white rounded-2xl border border-gray-200 shadow-card p-6; }
   .card-hover { @apply card hover:shadow-card-hover transition-shadow duration-150 cursor-pointer; }
   .badge  { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium; }
-  .badge-pending   { @apply badge bg-yellow-50 text-yellow-600; }
-  .badge-confirmed { @apply badge bg-blue-50 text-blue-700; }
-  .badge-completed { @apply badge bg-green-50 text-green-700; }
-  .badge-cancelled { @apply badge bg-red-50 text-red-600; }
-  .badge-verified  { @apply badge bg-green-50 text-green-700; }
+  .badge-pending { @apply badge bg-amber-500 text-white;}
+  .badge-confirmed { @apply badge bg-sky-600 text-white;}
+  .badge-completed { @apply badge bg-emerald-600 text-white;}
+  .badge-cancelled { @apply badge bg-rose-600 text-white;}
+  .badge-verified { @apply badge bg-emerald-600 text-white;}
   .page-container  { @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8; }
   .page-title      { @apply text-2xl font-semibold text-gray-900; }
   .section-title   { @apply text-lg font-medium text-gray-900; }

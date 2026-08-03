@@ -54,7 +54,7 @@ export default function PatientDashboard() {
 
       <div>
         <h1 className="page-title">
-          Good Morning, {user?.first_name}
+          Good Morning {user?.first_name}
         </h1>
         <p className="text-gray-500 mt-1 text-sm">
           Here's what's happening with your health today.
@@ -124,8 +124,8 @@ export default function PatientDashboard() {
         <h2 className="section-title mb-3">Quick actions</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Link to="/patient/doctors" className="card-hover flex items-center gap-3 p-4">
-            <div className="w-9 h-9 bg-blue-50 rounded-lg flex items-center justify-center">
-              <Search className="w-4 h-4 text-blue-600" />
+            <div className="w-9 h-9 bg-gray-50 rounded-lg flex items-center justify-center">
+              <Search className="w-4 h-4 text-grey-600" />
             </div>
             <div>
               <p className="text-sm font-medium text-gray-900">Find a Doctor</p>
@@ -135,8 +135,8 @@ export default function PatientDashboard() {
           </Link>
 
           <Link to="/patient/appointments" className="card-hover flex items-center gap-3 p-4">
-            <div className="w-9 h-9 bg-green-50 rounded-lg flex items-center justify-center">
-              <Calendar className="w-4 h-4 text-green-600" />
+            <div className="w-9 h-9 bg-gray-50 rounded-lg flex items-center justify-center">
+              <Calendar className="w-4 h-4 text-grey-600" />
             </div>
             <div>
               <p className="text-sm font-medium text-gray-900">Appointments</p>
@@ -146,8 +146,8 @@ export default function PatientDashboard() {
           </Link>
 
           <Link to="/patient/medications" className="card-hover flex items-center gap-3 p-4">
-            <div className="w-9 h-9 bg-purple-50 rounded-lg flex items-center justify-center">
-              <Pill className="w-4 h-4 text-purple-600" />
+            <div className="w-9 h-9 bg-gray-50 rounded-lg flex items-center justify-center">
+              <Pill className="w-4 h-4 text-grey-600" />
             </div>
             <div>
               <p className="text-sm font-medium text-gray-900">Medications</p>

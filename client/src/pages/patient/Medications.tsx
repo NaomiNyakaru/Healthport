@@ -2,30 +2,22 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../../api/client'
 import {
-  Pill, Plus, Trash2, CheckCircle, XCircle,
-  Clock, AlertCircle, X, ChevronDown, ChevronUp,
-  CalendarDays, User, RefreshCw
+  Pill, Plus, Trash2, AlertCircle, X, ChevronDown, ChevronUp,
+  CalendarDays, User
 } from 'lucide-react'
 import type { Medication, DosageLog, PaginatedResponse } from '../../types'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const STATUS_FILTERS = [
-  { value: '',      label: 'All' },
   { value: 'true',  label: 'Active' },
   { value: 'false', label: 'Inactive' },
 ]
 
 const doseStatusClass: Record<string, string> = {
-  taken:   'bg-green-100 text-green-700',
-  missed:  'bg-red-100 text-red-700',
+  taken:   'bg-emerald-600 text-white',
+  missed:  'bg-rose-600 text-white',
   skipped: 'bg-gray-100 text-gray-600',
-}
-
-const doseStatusIcon: Record<string, React.ReactNode> = {
-  taken:   <CheckCircle className="w-3.5 h-3.5" />,
-  missed:  <XCircle     className="w-3.5 h-3.5" />,
-  skipped: <Clock       className="w-3.5 h-3.5" />,
 }
 
 const formatDate = (iso: string) =>
@@ -260,7 +252,7 @@ export default function Medications() {
               {/* Card header */}
               <div className="flex items-start gap-4">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                  med.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'
+                  med.is_active ? 'bg-green-50 text-gray-700' : 'bg-gray-100 text-gray-400'
                 }`}>
                   <Pill className="w-5 h-5" />
                 </div>
@@ -269,10 +261,10 @@ export default function Medications() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-medium text-gray-900">{med.name}</p>
-                      <p className="text-sm text-blue-600 font-medium">{med.dosage}</p>
+                      <p className="text-sm text-black-100">{med.dosage}</p>
                     </div>
                     <span className={`text-xs px-2 py-1 rounded-full font-medium flex-shrink-0 ${
-                      med.is_active ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'
+                      med.is_active ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-500'
                     }`}>
                       {med.is_active ? 'Active' : 'Inactive'}
                     </span>
@@ -280,7 +272,7 @@ export default function Medications() {
 
                   <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-gray-500">
                     <span className="flex items-center gap-1">
-                      <RefreshCw className="w-3 h-3" /> {frequencyLabel(med)}
+                      {frequencyLabel(med)}
                     </span>
                     <span className="flex items-center gap-1">
                       <CalendarDays className="w-3 h-3" />
@@ -295,17 +287,19 @@ export default function Medications() {
                   </div>
 
                   {med.instructions && (
-                    <p className="text-xs text-gray-400 mt-1.5 italic">{med.instructions}</p>
+                    <p className="text-xs text-gray-400 mt-1.5">{med.instructions}</p>
                   )}
 
                   {/* Actions */}
                   <div className="flex gap-2 mt-3 flex-wrap">
-                    <button
-                      onClick={() => { setShowLogDose(med.id); setScheduledTime(new Date().toISOString().slice(0, 16)) }}
-                      className="btn-primary text-xs px-3 py-1.5"
-                    >
-                      <CheckCircle className="w-3.5 h-3.5" /> Log dose
-                    </button>
+                    {med.is_active && (
+                      <button
+                        onClick={() => { setShowLogDose(med.id); setScheduledTime(new Date().toISOString().slice(0, 16)) }}
+                        className="btn-primary text-xs px-3 py-1.5"
+                      >
+                        Log dose
+                      </button>
+                    )}
                     <button
                       onClick={() => setExpandedId(expandedId === med.id ? null : med.id)}
                       className="btn-secondary text-xs px-3 py-1.5"
@@ -345,7 +339,7 @@ export default function Medications() {
                           <span className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-full font-medium ${
                             doseStatusClass[log.status] ?? 'bg-gray-100 text-gray-600'
                           }`}>
-                            {doseStatusIcon[log.status]}
+  
                             {log.status_display}
                           </span>
                           <span className="text-xs text-gray-400 flex-1 text-right">

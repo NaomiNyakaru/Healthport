@@ -35,11 +35,10 @@ export default function AdminDashboard() {
     <div className="page-container space-y-6">
 
       <div>
-        <h1 className="page-title">Welcome, {user?.first_name}</h1>
+        <h1 className="page-title">Welcome {user?.first_name}</h1>
         <p className="text-gray-500 mt-1 text-sm">Here's what's happening across HealthPort.</p>
       </div>
 
-      {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {cards.map(({ label, value, icon: Icon, to, color }) => (
           <Link key={label} to={to} className="card-hover flex items-center gap-4">
@@ -56,7 +55,6 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* Pending verification queue */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="section-title">Doctors awaiting verification</h2>

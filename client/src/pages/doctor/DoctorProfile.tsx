@@ -337,7 +337,7 @@ export default function DoctorProfile() {
             <span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">
               {profile?.kmpdc_number}
             </span>
-            <span className="text-xs text-gray-400">KMPDC number · locked</span>
+            <span className="text-xs text-gray-400"></span>
           </div>
         </div>
         <p className="text-xs text-gray-400">

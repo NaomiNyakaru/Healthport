@@ -456,7 +456,7 @@ export default function PatientProfile() {
                 {profile?.allergies ? (
                   <div className="flex flex-wrap gap-1.5">
                     {profile.allergies.split(',').map((a, i) => (
-                      <span key={i} className="text-xs bg-red-50 text-red-700 px-2.5 py-0.5 rounded-full border border-red-100">
+                      <span key={i} className="text-xs bg-red-50 text-black-900 px-2.5 py-0.5 rounded-full border border-black-50">
                         {a.trim()}
                       </span>
                     ))}
@@ -471,7 +471,7 @@ export default function PatientProfile() {
                 {profile?.chronic_conditions ? (
                   <div className="flex flex-wrap gap-1.5">
                     {profile.chronic_conditions.split(',').map((c, i) => (
-                      <span key={i} className="text-xs bg-orange-50 text-orange-700 px-2.5 py-0.5 rounded-full border border-orange-100">
+                      <span key={i} className="text-xs bg-orange-50 text-black-900 px-2.5 py-0.5 rounded-full border border-black-50">
                         {c.trim()}
                       </span>
                     ))}

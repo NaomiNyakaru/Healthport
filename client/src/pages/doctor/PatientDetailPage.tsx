@@ -5,8 +5,8 @@ import { apiClient } from '../../api/client'
 import {
   ArrowLeft, User, Heart, AlertCircle, Phone,
   Calendar, Clock, Video, MapPin, FileText,
-  Lock, Unlock, Paperclip, MessageSquare, ChevronDown, ChevronUp,
-  Plus, X, Pill, RefreshCw, CalendarDays, CheckCircle, XCircle, Sparkles
+  Paperclip, MessageSquare, ChevronDown, ChevronUp,
+  Plus, X, Pill, RefreshCw, CalendarDays, Sparkles
 } from 'lucide-react'
 import type {
   PatientProfile, MedicalRecord, Appointment, Medication, DosageLog, PaginatedResponse
@@ -39,25 +39,19 @@ const statusClass: Record<string, string> = {
 }
 
 const RECORD_TYPE_COLOURS: Record<string, string> = {
-  diagnosis:    'bg-blue-50 text-blue-700 border-blue-100',
-  lab_result:   'bg-purple-50 text-purple-700 border-purple-100',
-  prescription: 'bg-green-50 text-green-700 border-green-100',
-  surgery:      'bg-red-50 text-red-700 border-red-100',
-  allergy:      'bg-orange-50 text-orange-700 border-orange-100',
-  vaccination:  'bg-teal-50 text-teal-700 border-teal-100',
-  note:         'bg-gray-50 text-gray-600 border-gray-100',
+  diagnosis:    'bg-blue-100 text-black-700 border-black-50',
+  lab_result:   'bg-purple-100 text-black-700 border-black-50',
+  prescription: 'bg-green-100 text-black-700 border-black-50',
+  surgery:      'bg-red-100 text-black-700 border-black-50',
+  allergy:      'bg-orange-100 black-orange-700 border-black-50',
+  vaccination:  'bg-teal-100 text-black-700 border-black-50',
+  note:         'bg-gray-100 text-black-600 border-black-50',
 }
 
 const doseStatusClass: Record<string, string> = {
-  taken:   'bg-green-100 text-green-700',
-  missed:  'bg-red-100 text-red-700',
+  taken:   'bg-emerald-600 text-white',
+  missed:  'bg-rose-600 text-white',
   skipped: 'bg-gray-100 text-gray-600',
-}
-
-const doseStatusIcon: Record<string, React.ReactNode> = {
-  taken:   <CheckCircle className="w-3.5 h-3.5" />,
-  missed:  <XCircle     className="w-3.5 h-3.5" />,
-  skipped: <Clock       className="w-3.5 h-3.5" />,
 }
 
 const formatDateTime = (iso: string) =>
@@ -515,7 +509,7 @@ export default function PatientDetailPage() {
                 {profile.allergies.split(',').map((a, i) => (
                   <span
                     key={i}
-                    className="text-xs bg-red-50 text-red-700 border border-red-100 px-2.5 py-0.5 rounded-full"
+                    className="text-xs bg-red-50 text-black-900 border border-black-50 px-2.5 py-0.5 rounded-full"
                   >
                     {a.trim()}
                   </span>
@@ -534,7 +528,7 @@ export default function PatientDetailPage() {
                 {profile.chronic_conditions.split(',').map((c, i) => (
                   <span
                     key={i}
-                    className="text-xs bg-orange-50 text-orange-700 border border-orange-100 px-2.5 py-0.5 rounded-full"
+                    className="text-xs bg-orange-50 text-black-900 border border-black-50 px-2.5 py-0.5 rounded-full"
                   >
                     {c.trim()}
                   </span>
@@ -623,17 +617,10 @@ export default function PatientDetailPage() {
 
         <p className="text-xs text-gray-400 border-t border-blue-100 pt-2">
           AI-generated briefing — always verify against the full records below.
-          Not a substitute for clinical judgment.
         </p>
       </div> 
       
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2 flex-1">
-            <Lock className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
-            <p className="text-xs text-blue-700">
-              Records you mark private are hidden from other doctors, but always visible to the patient.
-            </p>
-          </div>
+        <div className="flex justify-end -mt-2 mb-1">
           <button
             onClick={() => { setShowAddRecord(true); setRecordError('') }}
             className="btn-primary text-xs px-3 py-2 flex-shrink-0"
@@ -736,7 +723,7 @@ export default function PatientDetailPage() {
                     <p className="text-sm text-blue-600 font-medium">{med.dosage}</p>
                   </div>
                   <span className={`text-xs px-2 py-1 rounded-full font-medium flex-shrink-0 ${
-                    med.is_active ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'
+                    med.is_active ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-500'
                   }`}>
                     {med.is_active ? 'Active' : 'Inactive'}
                   </span>
@@ -744,7 +731,7 @@ export default function PatientDetailPage() {
 
                 <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-gray-500">
                   <span className="flex items-center gap-1">
-                    <RefreshCw className="w-3 h-3" /> {frequencyLabel(med)}
+                    {frequencyLabel(med)}
                   </span>
                   <span className="flex items-center gap-1">
                     <CalendarDays className="w-3 h-3" />
@@ -759,7 +746,7 @@ export default function PatientDetailPage() {
                 </div>
 
                 {med.instructions && (
-                  <p className="text-xs text-gray-400 mt-1.5 italic">{med.instructions}</p>
+                  <p className="text-xs text-gray-400 mt-1.5">{med.instructions}</p>
                 )}
 
                 {/* Actions */}
@@ -788,7 +775,6 @@ export default function PatientDetailPage() {
                             <span className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-full font-medium ${
                               doseStatusClass[log.status] ?? 'bg-gray-100 text-gray-600'
                             }`}>
-                              {doseStatusIcon[log.status]}
                               {log.status_display}
                             </span>
                             <span className="text-xs text-gray-400 flex-1 text-right">
@@ -1123,28 +1109,6 @@ export default function PatientDetailPage() {
                 </ul>
               )}
             </div>
-
-            {/* Privacy toggle */}
-            <label className="flex items-center gap-3 cursor-pointer px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors">
-              <input
-                type="checkbox"
-                className="w-4 h-4 accent-blue-600"
-                checked={isPrivate}
-                onChange={(e) => setIsPrivate(e.target.checked)}
-              />
-              <div className="flex items-center gap-2">
-                {isPrivate
-                  ? <Lock   className="w-4 h-4 text-gray-500" />
-                  : <Unlock className="w-4 h-4 text-gray-400" />
-                }
-                <div>
-                  <p className="text-sm font-medium text-gray-700">Private from other doctors</p>
-                  <p className="text-xs text-gray-400">
-                    The patient can always see this. Other doctors cannot.
-                  </p>
-                </div>
-              </div>
-            </label>
 
             {/* Actions */}
             <div className="flex gap-3 pt-1">

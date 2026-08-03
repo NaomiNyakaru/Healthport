@@ -3,12 +3,9 @@ import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '../../api/client'
 import {
   Download, Image as ImageIcon, FileType2,
-  FlaskConical, Pill, Stethoscope, Syringe, Scissors, ShieldAlert,
-  FileText, FolderOpen, Lock
+  FolderOpen, Lock,
 } from 'lucide-react'
 import type { MedicalRecord, PaginatedResponse } from '../../types'
-
-// ── Constants ─────────────────────────────────────────────────────────────────
 
 const RECORD_TYPE_FILTERS = [
   { value: '',             label: 'All' },
@@ -21,18 +18,6 @@ const RECORD_TYPE_FILTERS = [
   { value: 'note',         label: 'Notes' },
 ]
 
-const typeIcon: Record<string, React.ReactNode> = {
-  lab_result:   <FlaskConical className="w-5 h-5" />,
-  prescription: <Pill         className="w-5 h-5" />,
-  diagnosis:    <Stethoscope  className="w-5 h-5" />,
-  surgery:      <Scissors     className="w-5 h-5" />,
-  allergy:      <ShieldAlert  className="w-5 h-5" />,
-  vaccination:  <Syringe      className="w-5 h-5" />,
-  note:         <FileText     className="w-5 h-5" />,
-}
-
-// Icon chip background/text + matching left-border accent, sharing one
-// source of truth so a record's colour reads the same across the card.
 const typeStyle: Record<string, { chip: string; accent: string }> = {
   lab_result:   { chip: 'bg-blue-50 text-blue-600',     accent: 'border-l-blue-400' },
   prescription: { chip: 'bg-green-50 text-green-600',   accent: 'border-l-green-400' },
@@ -55,12 +40,8 @@ const formatDate = (iso: string) =>
 const monthLabel = (iso: string) =>
   new Date(iso).toLocaleDateString('en-KE', { month: 'long', year: 'numeric' })
 
-// ── Component ─────────────────────────────────────────────────────────────────
-
 export default function MedicalRecords() {
   const [filter, setFilter] = useState('')
-
-  // ── Fetch ──────────────────────────────────────────────────────────────────
 
   const { data, isLoading } = useQuery({
     queryKey: ['medical-records', filter],
@@ -72,12 +53,8 @@ export default function MedicalRecords() {
         .then(r => r.data),
   })
 
-  // Belt-and-braces: filter client-side too, so the list is always correct
-  // even if a stale cache/build/proxy ever serves back an unfiltered response.
   const records = (data?.results ?? []).filter(r => !filter || r.record_type === filter)
 
-  // Group chronologically-sorted records under a "July 2026" style heading,
-  // preserving the order the API already returns (most recent first).
   const groups: { label: string; items: MedicalRecord[] }[] = []
   for (const record of records) {
     const label = monthLabel(record.date_of_record)
@@ -91,12 +68,9 @@ export default function MedicalRecords() {
 
   const activeFilterLabel = RECORD_TYPE_FILTERS.find(f => f.value === filter)?.label
 
-  // ── Render ─────────────────────────────────────────────────────────────────
-
   return (
     <div className="page-container space-y-6">
 
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="page-title">Medical Records</h1>
@@ -106,7 +80,6 @@ export default function MedicalRecords() {
         </div>
       </div>
 
-      {/* Filter tabs */}
       <div className="flex gap-2 flex-wrap">
         {RECORD_TYPE_FILTERS.map(({ value, label }) => (
           <button
@@ -123,14 +96,12 @@ export default function MedicalRecords() {
         ))}
       </div>
 
-      {/* Count */}
       {!isLoading && (
         <p className="text-sm text-gray-500">
           {records.length} record{records.length !== 1 ? 's' : ''}
         </p>
       )}
 
-      {/* Skeletons */}
       {isLoading && (
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
@@ -148,7 +119,6 @@ export default function MedicalRecords() {
         </div>
       )}
 
-      {/* Empty state */}
       {!isLoading && records.length === 0 && (
         <div className="text-center py-16">
           <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -165,7 +135,6 @@ export default function MedicalRecords() {
         </div>
       )}
 
-      {/* Records list, grouped by month */}
       {!isLoading && records.length > 0 && (
         <div className="space-y-6">
           {groups.map(group => (
@@ -181,12 +150,6 @@ export default function MedicalRecords() {
                     key={record.id}
                     className={`card border-l-4 ${style.accent} flex items-start gap-4`}
                   >
-                    {/* Icon */}
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${style.chip}`}>
-                      {typeIcon[record.record_type] ?? <FileText className="w-5 h-5" />}
-                    </div>
-
-                    {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
@@ -216,7 +179,6 @@ export default function MedicalRecords() {
                         </div>
                       )}
 
-                      {/* Attachments */}
                       {record.attachments?.length > 0 && (
                         <div className="flex gap-2 mt-3 flex-wrap">
                           {record.attachments.map(att => {

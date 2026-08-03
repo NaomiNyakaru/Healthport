@@ -28,12 +28,10 @@ export default function ChatRoom() {
     enabled: !!roomId,
   })
 
-  // Scroll to bottom on new messages
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // WebSocket connection
   useEffect(() => {
     if (!roomId) return
 
@@ -50,14 +48,6 @@ export default function ChatRoom() {
         const data: WSPayload = JSON.parse(event.data)
 
         if (data.type === 'history') {
-          // The backend sends each history message with message_id/sender_id
-          // (see ChatConsumer.get_recent_messages in consumers.py), but every
-          // message in state is expected to have id/sender — the shape used
-          // by the live 'message' branch below. Without this normalization,
-          // isMyMessage() reads msg.sender as undefined for every history
-          // message, so they'd all render as "received" (left/white) even
-          // when the current user sent them — only messages that arrive
-          // live during the session were ever shaped correctly.
           setMessages(
             data.messages.map((m: any) => ({
               id:            m.message_id,
@@ -132,7 +122,6 @@ export default function ChatRoom() {
       weekday: 'long', month: 'long', day: 'numeric'
     })
 
-  // Group messages by date
   const groupedMessages = messages.reduce((groups, msg) => {
     const date = msg.created_at.split('T')[0]
     if (!groups[date]) groups[date] = []
@@ -140,15 +129,12 @@ export default function ChatRoom() {
     return groups
   }, {} as Record<string, Message[]>)
 
-  // ── Determine if a message was sent by the current user ──────────────────
-  // Compare both as strings and trim to handle any whitespace differences
   const isMyMessage = (msg: Message) =>
     String(msg.sender).trim() === String(user?.id).trim()
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
 
-      {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200 flex-shrink-0 shadow-sm">
         <button
           onClick={() => navigate(`${basePath}/chat`)}
@@ -169,7 +155,6 @@ export default function ChatRoom() {
           </p>
         </div>
 
-        {/* Live / offline indicator */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {connected ? (
             <>
@@ -187,7 +172,6 @@ export default function ChatRoom() {
         </div>
       </div>
 
-      {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
 
         {messages.length === 0 && !wsError && (
@@ -199,7 +183,6 @@ export default function ChatRoom() {
         {Object.entries(groupedMessages).map(([date, dayMessages]) => (
           <div key={date} className="space-y-3">
 
-            {/* Date divider */}
             <div className="flex items-center gap-3 my-2">
               <div className="flex-1 h-px bg-gray-200" />
               <span className="text-xs text-gray-400 bg-gray-50 px-2 flex-shrink-0">
@@ -216,7 +199,6 @@ export default function ChatRoom() {
                   key={msg.id}
                   className={`flex items-end gap-2 ${mine ? 'justify-end' : 'justify-start'}`}
                 >
-                  {/* Other person avatar — left side */}
                   {!mine && (
                     <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mb-1 shadow-sm">
                       <span className="text-blue-700 font-semibold text-xs">
@@ -227,23 +209,20 @@ export default function ChatRoom() {
 
                   <div className={`flex flex-col gap-1 max-w-xs lg:max-w-md ${mine ? 'items-end' : 'items-start'}`}>
 
-                    {/* Sender name — only for received messages */}
                     {!mine && (
                       <span className="text-xs text-gray-500 font-medium px-1">
                         {msg.sender_name}
                       </span>
                     )}
 
-                    {/* Message bubble */}
                     <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm ${
                       mine
-                        ? 'bg-blue-600 text-white rounded-br-none'      // ← MY messages: blue, right side, no bottom-right radius
-                        : 'bg-white text-gray-900 rounded-bl-none border border-gray-100'  // ← THEIR messages: white, left side, no bottom-left radius
+                        ? 'bg-blue-600 text-white rounded-br-none'     
+                        : 'bg-white text-gray-900 rounded-bl-none border border-gray-100'  
                     }`}>
                       {msg.content}
                     </div>
 
-                    {/* Timestamp + read receipt */}
                     <div className={`flex items-center gap-1 px-1 ${mine ? 'justify-end' : 'justify-start'}`}>
                       <span className="text-xs text-gray-400">
                         {formatTime(msg.created_at)}
@@ -256,7 +235,6 @@ export default function ChatRoom() {
                     </div>
                   </div>
 
-                  {/* My avatar — right side */}
                   {mine && (
                     <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 mb-1 shadow-sm">
                       <span className="text-white font-semibold text-xs">
@@ -273,7 +251,6 @@ export default function ChatRoom() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input bar */}
       <div className="flex-shrink-0 bg-white border-t border-gray-200 px-4 py-3 shadow-sm">
         {wsError && (
           <p className="text-xs text-amber-500 mb-2 text-center">

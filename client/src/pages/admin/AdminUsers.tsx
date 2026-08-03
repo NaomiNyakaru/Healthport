@@ -8,9 +8,9 @@ import {
 import type { AdminUser, PaginatedResponse, UserRole } from '../../types'
 
 const roleBadge: Record<string, string> = {
-  patient: 'bg-blue-50 text-blue-700',
-  doctor:  'bg-emerald-50 text-emerald-700',
-  admin:   'bg-purple-50 text-purple-700',
+  patient: 'bg-emerald-600 text-white',
+  doctor:  'bg-blue-500 text-white',
+  admin:   'bg-gray-500 text-white',
 }
 
 // ── Create / edit modal ─────────────────────────────────────────────────────

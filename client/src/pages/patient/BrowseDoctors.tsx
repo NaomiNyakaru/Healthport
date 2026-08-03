@@ -348,7 +348,7 @@ export default function BrowseDoctors() {
                 </div>
                 <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                   doctor.is_accepting_patients
-                    ? 'bg-green-50 text-green-700'
+                    ? 'bg-emerald-600 text-white'
                     : 'bg-gray-100 text-gray-500'
                 }`}>
                   {doctor.is_accepting_patients ? 'Available' : 'Unavailable'}

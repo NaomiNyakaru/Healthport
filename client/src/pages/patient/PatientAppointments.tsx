@@ -169,7 +169,7 @@ export default function PatientAppointments() {
                   </div>
                   <div>
                     <p className="font-medium text-gray-900">{appt.doctor_name}</p>
-                    <p className="text-sm text-blue-600">{appt.doctor_specialty}</p>
+                    <p className="text-sm text-gray-600">{appt.doctor_specialty}</p>
                   </div>
                 </div>
                 <span className={statusClass[appt.status] || 'badge'}>
@@ -212,10 +212,8 @@ export default function PatientAppointments() {
 
               {/* Cancellation */}
               {appt.status === 'cancelled' && appt.cancellation_reason && (
-                <div className="bg-red-50 rounded-xl px-4 py-3">
-                  <p className="text-xs text-red-500 font-medium mb-0.5">
-                    Cancelled by {appt.cancelled_by_name || 'unknown'}
-                  </p>
+                <div className="bg-red-100 rounded-xl px-4 py-1 w-fit">
+                  <p className="text-sm font-medium text-gray-700">Reason for cancellation</p>
                   <p className="text-sm text-gray-700">{appt.cancellation_reason}</p>
                 </div>
               )}
