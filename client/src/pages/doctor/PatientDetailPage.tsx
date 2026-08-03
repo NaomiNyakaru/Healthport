@@ -106,6 +106,7 @@ export default function PatientDetailPage() {
   const { id }    = useParams<{ id: string }>()
   const navigate  = useNavigate()
   const queryClient = useQueryClient()
+  const today = new Date().toISOString().split('T')[0]
 
   const [showAllAppts, setShowAllAppts] = useState(false)
 
@@ -115,7 +116,7 @@ export default function PatientDetailPage() {
   const [title,         setTitle]         = useState('')
   const [recordType,    setRecordType]    = useState('note')
   const [description,   setDescription]   = useState('')
-  const [dateOfRecord,  setDateOfRecord]  = useState('')
+  const [dateOfRecord, setDateOfRecord] = useState(today)
   const [isPrivate,     setIsPrivate]     = useState(false)
   const [files,         setFiles]         = useState<File[]>([])
 
@@ -123,7 +124,7 @@ export default function PatientDetailPage() {
     setTitle('')
     setRecordType('note')
     setDescription('')
-    setDateOfRecord('')
+    setDateOfRecord(today)
     setIsPrivate(false)
     setFiles([])
     setRecordError('')
@@ -202,8 +203,6 @@ export default function PatientDetailPage() {
     setRecordError('')
     addRecordMutation.mutate()
   }
-
-  const today = new Date().toISOString().split('T')[0]
 
   // ── Prescribe medication form state ──────────────────────────────────────
   const [showAddMed, setShowAddMed] = useState(false)
