@@ -176,7 +176,7 @@ export default function ChatRoom() {
 
         {messages.length === 0 && !wsError && (
           <div className="text-center py-12">
-            <p className="text-sm text-gray-400">No messages yet — say hello! 👋</p>
+            <p className="text-sm text-gray-400">No messages yet — say hello!</p>
           </div>
         )}
 
